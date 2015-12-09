@@ -92,9 +92,11 @@ SPS_SteamgiftLikes._addIcon = function( $node, style, type, isSelected ) {
     .addClass('sps_sgld_button')
     .attr('src', style.icon);
     if ( isSelected ) {
-        $node.attr('style', style.wrapper_style );
-        if ( style.wrapper_class ) {
-            $node.addClass(style.wrapper_class);
+        if ( !$node.find( '.giveaway__row-inner-wrap' ).hasClass('is-faded') ) {
+            $node.attr('style', style.wrapper_style );
+            if ( style.wrapper_class ) {
+                $node.addClass(style.wrapper_class);
+            }
         }
         $imgNode.attr('onclick','javascript:SPS_SteamgiftLikes.removeGameFrom(\''+type+'\', this)')
             .attr('style', style.active_icon_style);
