@@ -35,18 +35,66 @@ SPS_SteamgiftLikes._dislike_style = {
 SPS_SteamgiftLikes.__liked = {};
 SPS_SteamgiftLikes.__disliked = {};
 
-// settinga part
+SPS_SteamgiftLikes.__countButton = null;
+
+// settings part
 SPS_SteamgiftLikes._appendSettings = function() {
     var rows = [];
+    var heads = '<thead><th>Game</th><th><input type="button" onclick="javascript:SPS_SteamgiftLikes.parseGameCount(this);" value="count"></th><th>&nbsp;</th></thead>';
     this.__loadData();
     for (var key in this.__liked) {
         if (this.__liked.hasOwnProperty(key)) {
-            rows.push('<li><a href="/giveaways/search?q='+this.__liked[key]+'"><span>'+this.__liked[key]+'</span></a></li>');
+            rows.push('<tr><td class="game_name"><a href="/giveaways/search?q='+this.__liked[key]+'">'+this.__liked[key]+'</a></td>'+
+                      '<td class="game_count">&nbsp;</td>'+
+                      '<td class="game_links">&nbsp;</td></tr>');
         }
     }
-    $('div.page__heading').parent().append( '<h3>Liked</h3><ul>'+rows.join('')+'</ul>' );
+    $('div.page__heading').parent().append( '&nbsp;<h3>Liked:</h3><table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody></table>' );
 };
 
+SPS_SteamgiftLikes.parseGameCount = function( button ) {
+    if ( null !== this.__countButton ) {
+        return;
+    }
+    this.__countButton = button;
+    $( this.__countButton ).attr('disabled','1');
+    var $elem = $('.liked_games tbody tr').first();
+    this.__parseOneGameCount( $elem );
+}
+
+SPS_SteamgiftLikes.__parseOneGameCount = function( $row ) {
+    if ( $row.length ) {
+        var $countCell = $row.find('td.game_count');
+        if ( $countCell.length ) {
+            var gameName = $row.find('td.game_name > a').html();
+            $.get( '/giveaways/search?q='+gameName,
+                   {},
+                   function( data ) {
+                       var gameRowsCount = $('.widget-container > div:not([class]) > div:not([class]) .giveaway__row-inner-wrap', data ).length;
+                       var $gameRowsNotEntered = $('.widget-container > div:not([class]) > div:not([class]) .giveaway__row-inner-wrap:not(".is-faded")', data );
+                       var gameRowsNotEnteredCount = $gameRowsNotEntered.length;
+                       $countCell.html( gameRowsNotEnteredCount + '/' + gameRowsCount );
+                       if ( gameRowsNotEnteredCount ) {
+                           $row.removeAttr('style');
+                           var $linksCell = $row.find('td.game_links');
+                           var gameCounter = 1;
+                           $gameRowsNotEntered.each(function(){
+                                   if ( gameCounter > 10 ) return;
+                                   var giveawayLink = $(this).find('a.giveaway__heading__name').attr('href');
+                                   $linksCell.append('&nbsp;<a href="'+giveawayLink+'">['+(gameCounter++)+']</a>');
+                               });
+                       } else {
+                           $row.attr('style', 'color:gray');
+                       }
+                       setTimeout( function(){ SPS_SteamgiftLikes.__parseOneGameCount( $row.next() ) }, 500+1000*Math.random());
+                   },
+                   'html');
+        }
+    } else {
+        $( this.__countButton ).removeAttr('disabled');
+        this.__countButton = null;
+    }
+}
 
 // list part
 SPS_SteamgiftLikes.addGameTo = function( type, button ) {
@@ -55,6 +103,7 @@ SPS_SteamgiftLikes.addGameTo = function( type, button ) {
     var $hideLink = $('i.giveaway__hide', $wrapper);
     if ( $hideLink.length ) {
         var gameId = ''+$hideLink.attr('data-game-id')+'_';
+        this.__loadData();
         if ( 'like' == type && !this.__liked[gameId] ) {
             this.__liked[gameId] = gameName;
             this.__saveData();
@@ -73,6 +122,7 @@ SPS_SteamgiftLikes.removeGameFrom = function( type, button ) {
     var $hideLink = $('i.giveaway__hide', $wrapper);
     if ( $hideLink.length ) {
         var gameId = ''+$hideLink.attr('data-game-id')+'_';
+        this.__loadData();
         if ( 'like' == type && this.__liked[gameId] ) {
             delete this.__liked[gameId];
             this.__saveData();
