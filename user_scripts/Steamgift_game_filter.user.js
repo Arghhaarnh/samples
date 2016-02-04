@@ -72,6 +72,55 @@ SPS_SteamgiftLikes._appendSettings = function() {
     $('div.page__heading').parent().append( '&nbsp;<h3>Liked:</h3><table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody></table>' );
 };
 
+// append likes import/export form to page
+SPS_SteamgiftLikes._appendImportSettings = function() {
+    var form = '<form>'+
+               '<textarea id="import_settings_text"></textarea>'+
+               '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pullImportSettings();"><i class="fa fa-arrow-circle-right"></i> Refresh</div>&nbsp;'+
+               '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pushImportSettings(false);"><i class="fa fa-arrow-circle-right"></i> Import full</div>&nbsp;'+
+               '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pushImportSettings(true);"><i class="fa fa-arrow-circle-right"></i> Merge</div>&nbsp;'+
+               '</form>';
+    $('div.page__heading').parent().append( '&nbsp;<h3>Like/dislike import:</h3>'+form+'' );
+    this.pullImportSettings();
+};
+
+SPS_SteamgiftLikes.pullImportSettings = function() {
+    this.__loadData();
+    var settingsText = JSON.stringify({liked:this.__liked, disliked:this.__disliked});
+    $('#import_settings_text').val(settingsText);
+}
+
+SPS_SteamgiftLikes.pushImportSettings = function( toMerge ) {
+    try {
+        var toImport = JSON.parse( $('#import_settings_text').val() );
+        if ( toImport.liked instanceof Object ) {
+            if ( toMerge ) {
+                for (var key in toImport.liked) {
+                    if (toImport.liked.hasOwnProperty(key) && (!this.__liked.hasOwnProperty(key) || !this.__liked[key]) ) {
+                        this.__liked[key] = toImport.liked[key];
+                    }
+                }
+            } else {
+                this.__liked = toImport.liked;
+            }
+        }
+        if ( toImport.disliked instanceof Object ) {
+            if ( toMerge ) {
+                for (var key in toImport.disliked) {
+                    if (toImport.disliked.hasOwnProperty(key) && (!this.__disliked.hasOwnProperty(key) || !this.__disliked[key]) ) {
+                        this.__disliked[key] = toImport.disliked[key];
+                    }
+                }
+            } else {
+                this.__disliked = toImport.disliked;
+            }
+        }
+        this.__saveData();
+    } catch(e) {
+        alert('Invalid settings to import');
+    }
+}
+
 // start the search-n-parse process
 SPS_SteamgiftLikes.parseGameCount = function( button ) {
     if ( null !== this.__countButton ) {
@@ -279,8 +328,9 @@ SPS_SteamgiftLikes.__loadData = function() {
 SPS_SteamgiftLikes.route = function() {
     if (window.location.pathname.match(/^\/account\/settings\/giveaways/)) { 
         this._appendSettings();
-    }
-    else if ( window.location.pathname.match(/^\/giveaway/) || window.location.pathname.length === 0 || window.location.pathname === "/" ) {
+    } else if (window.location.pathname.match(/^\/account\/profile\/sync/)) { 
+        this._appendImportSettings();
+    } else if ( window.location.pathname.match(/^\/giveaway/) || window.location.pathname.length === 0 || window.location.pathname === "/" ) {
         this.__loadData();
         this._findLikes();
     }
