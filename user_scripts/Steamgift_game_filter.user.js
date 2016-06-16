@@ -1,9 +1,13 @@
 // ==UserScript==
 // @name         Steamgift game filter
-// @version      1.2
+// @version      1.3
 // @description  You can like\unlike the games on steamgift to fade\highlight them in the list
 //               Liked games list available on the settings page. Is searches and highlights
 //                giveaways, where you didn't entered yet.
+//               How to use:
+//                - game lists like search, frontpage etc. have like/dislike marks. Like will highlight the game in lists. Dislike - fade it.
+//                - setting page https://www.steamgifts.com/account/settings/giveaways allow to scan giveaway list for liked games
+//                - setting page https://www.steamgifts.com/account/profile/sync allow to import/export likes/dislikes as json
 // @author       Blood_again
 // @match        http://www.steamgifts.com/*
 // @match        https://www.steamgifts.com/*
@@ -71,18 +75,36 @@ SPS_SteamgiftLikes._appendSettings = function() {
                       '<td class="game_links">&nbsp;</td></tr>');
         }
     }
-    $('div.page__heading').parent().append( '&nbsp;<h3>Liked:</h3><table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody></table>' );
+    this._appendSettingsRow( 1, 'Monitor', '<table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody></table>' );
+};
+
+SPS_SteamgiftLikes._appendSettingsRow = function( number, title, body ) {
+    if ( false === number ) {
+        var numberElem = $('.form__heading__number:last').html();
+        number = parseInt(numberElem);
+        number++;
+    }
+    $('div.widget-container form:last').append(
+        '<div class="form__row"><div class="form__heading">'+
+        '<div class="form__heading__number">'+number+'.</div>'+
+        '<div class="form__heading__text">'+title+'</div>'+
+        '</div><div class="form__row__indent">'+body+'</div></div>'
+        );
+};
+
+SPS_SteamgiftLikes._appendSettingsHead = function( title ) {
+    $('div.page__heading').parent().append(
+        '&nbsp;<div class="page__heading"><div class="page__heading__breadcrumbs"><a href="#">'+title+'</a></div></div><form onsubmit="return false;"></form>'
+        );
 };
 
 // append likes import/export form to page
 SPS_SteamgiftLikes._appendImportSettings = function() {
-    var form = '<form>'+
-               '<textarea id="import_settings_text"></textarea>'+
+    var form = '<textarea id="import_settings_text"></textarea>'+
                '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pullImportSettings();"><i class="fa fa-arrow-circle-right"></i> Refresh</div>&nbsp;'+
                '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pushImportSettings(false);"><i class="fa fa-arrow-circle-right"></i> Import full</div>&nbsp;'+
-               '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pushImportSettings(true);"><i class="fa fa-arrow-circle-right"></i> Merge</div>&nbsp;'+
-               '</form>';
-    $('div.page__heading').parent().append( '&nbsp;<h3>Like/dislike import:</h3>'+form+'' );
+               '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pushImportSettings(true);"><i class="fa fa-arrow-circle-right"></i> Merge</div>&nbsp;';
+    this._appendSettingsRow( false, 'Like/dislike import', form );
     this.pullImportSettings();
 };
 
@@ -122,6 +144,36 @@ SPS_SteamgiftLikes.pushImportSettings = function( toMerge ) {
     } catch(e) {
         alert('Invalid settings to import');
     }
+};
+
+// append add custom like form to page
+SPS_SteamgiftLikes._appendCustomLikeSettings = function() {
+    var panel = '<input class="js__autocomplete-id" type="hidden" name="game_id" id="like_game_id" value="">'+
+                '<input data-autocomplete-do="autocomplete_game" class="js__autocomplete-name" type="text" placeholder="Start typing a game..." id="like_game_name" value="">'+
+				'<div class="js__autocomplete-data"></div>'+
+                '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.addCustomLike(\'like\');"><i class="fa fa-arrow-circle-right"></i> Like</div>&nbsp;'+
+                '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.addCustomLike(\'dislike\');"><i class="fa fa-arrow-circle-right"></i> Dislike</div>&nbsp;';
+    this._appendSettingsRow( 1, 'Add custom like', panel );
+};
+
+SPS_SteamgiftLikes.addCustomLike = function( type ) {
+    var gameId = $('#like_game_id').val();
+    if ( !gameId ) return false;
+    gameId = ''+gameId+'_';
+    var gameName = $('#like_game_name').val();
+    this.__loadData();
+    if ( 'like' == type && !this.__liked[gameId] ) {
+        this.__liked[gameId] = gameName;
+        this.__saveData();
+    }
+    else if ( 'dislike' == type && !this.__disliked[gameId] ) {
+        this.__disliked[gameId] = gameName;
+        this.__saveData();
+    }
+    this.pullImportSettings();
+    $('#like_game_id').val('');
+    $('#like_game_name').val('');
+    return false;
 };
 
 // start the search-n-parse process
@@ -369,8 +421,11 @@ SPS_SteamgiftLikes.__loadData = function() {
 // router
 SPS_SteamgiftLikes.route = function() {
     if (window.location.pathname.match(/^\/account\/settings\/giveaways/)) {
+        this._appendSettingsHead( 'Likes' );
         this._appendSettings();
     } else if (window.location.pathname.match(/^\/account\/profile\/sync/)) {
+        this._appendSettingsHead( 'Likes' );
+        this._appendCustomLikeSettings();
         this._appendImportSettings();
     } else if ( window.location.pathname.match(/^\/giveaway/) || window.location.pathname.length === 0 || window.location.pathname === "/" ) {
         this.__loadData();
