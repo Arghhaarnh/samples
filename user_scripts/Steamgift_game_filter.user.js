@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Steamgift game filter
-// @version      1.3
+// @version      1.4
 // @description  You can like\unlike the games on steamgift to fade\highlight them in the list
 //               Liked games list available on the settings page. Is searches and highlights
 //                giveaways, where you didn't entered yet.
@@ -11,7 +11,7 @@
 // @author       Blood_again
 // @match        http://www.steamgifts.com/*
 // @match        https://www.steamgifts.com/*
-// @require		 https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
+// @require      https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // ==/UserScript==
 
 
@@ -37,19 +37,38 @@ SPS_SteamgiftLikes._gameAlertColors = [ { time: 5400*1000, color:'red'}, // 1.5 
                                        ];
 
 // Icons by Andy (http://steamcommunity.com/profiles/76561198063102286)
+SPS_SteamgiftLikes._icons = {
+    like: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAMAAAAMCGV4AAAAElBMVEX///85abHN2euctNjz9vqovd3WpoAuAAAAO0lEQVQImZWP0QoAIAgDt7n+/5crIhJ7qXvymKADJkEGEhy4uN48mIgVHXx53YclzblJ/rmf/6194J12TkwAqgm9KQcAAAAASUVORK5CYII=',
+    dislike: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAhCAIAAADYhlU4AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC41ZYUyZQAAAPhJREFUSEvN1k0KwjAQQOHewa1HcKmn8LKCS8+jeIv6mgnG5nfSDMXhLUIK+ShtodPs5vl6n87Xw/FiFadxphzuDcaQ+QWYYDAmTAQw0+3+8Es3g0wKcP7EBSsmC7C/GDTOlADyBo0wFYCCQduYOkArg3qZJkCxQXpGA1DGIA2jBChvUJ3RA1Q0qMR0AVQzKMt0AdQwKGX8yk0ToLZBEfMdDUAqg1JGCdB/3EcE2D+PFDB+r7IA+2bfRwmQupi8UQckPZMxNICkZGJDD0gaZmX0AlKTCcY2QKoz3hgBpAqzGOOAVGJ2+U/0SzeDgJQyO/63GwJSYOb5A0nZHWu6sVhXAAAAAElFTkSuQmCC',
+    refresh: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAQAAAC1QeVaAAAAqElEQVR4AX3LsUpCYRzG4QcEl3ZB6kbKIbqAlgIpqFtoagohTMhRr0MUHNzFK3BQvA7RMziofw+CnA9Bn9/48pYAtxq6Ohrq7ixk+AU+ZSJp5V3LFj7shZ4H5byagTi2pWotfEmNT2Nb6Eu1iudcuFdoimLcCGUXXB1nQs0F/8LAuWclqFoJ31I/wgR4sxeGHt3kPRkJOy8AdUuRtPQqUfFnKsubaqoABz2aTKtk4DjHAAAAAElFTkSuQmCC'
+};
+
+SPS_SteamgiftLikes._styles = {
+    gameCounter : '',
+    gameList : ".sps_sgld_button { width: 17px; height: 17px; float: right; position: relative; margin: -6px 3px 1px 3px;text-shadow: 1px 1px 1px rgba(255,255,255,0.3);border-radius:2px;text-align:center;vertical-align:middle; font-size:120% }\
+                .sps_sgld_button.like { background-image: -webkit-linear-gradient(#C9E7FF 0%, #48ADFF 100%);border-color: #48ADFF #1374C4 #1374C4 #48ADFF;color: white;}\
+                .sps_sgld_button.dislike { background-image: -webkit-linear-gradient(#363A3D 0%, #0A131A 100%);border-color: #48ADFF #1374C4 #1374C4 #48ADFF;color: white;}\
+                .liked .sps_sgld_button.like, .disliked .sps_sgld_button.dislike { transform:rotate(45deg); -webkit-transform:rotate(45deg); }\
+                .liked .sps_sgld_button.dislike, .disliked .sps_sgld_button.like { display: none; }\
+",
+    gameSettings : '',
+};
+
 SPS_SteamgiftLikes._like_style = {
-    'icon' : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAhCAIAAADYhlU4AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwQAADsEBuJFr7QAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC41ZYUyZQAAAN5JREFUSEvtkUEWgyAQQ3u/3sazeh+b1gQhgtCW2Zn3V2TMX/h4Lms0t2OccMe2bbEOCGIduwCJcnD+kxAHt5X5Dg4reJns4LCyP850cFhJ79McHFbyao6Dw4q1ExwcVqwFbwfLWt2FXyrW7hQOJO+68BvF2oQ7kLy+gNeKtTn8HzxUUt2Cd4q1xvHPea6k9zO8UKw9czgAP1LyKsFOsbZK4QD8VPmqbeEOwAGl+96l4gCcacfur6k7AMdqscsuTQfgZBm7GeHKATisWDtIxwE4/6sA9B3/czvGiXcs6wvihol3l6PLqQAAAABJRU5ErkJggg==',
+    'icon' : SPS_SteamgiftLikes._icons.like,
     'icon_style' : 'padding: 1px 3px; width: 15px; height: 15px; float: right; position: relative; margin-top: -6px;',
     'active_icon_style' : 'padding: 1px 3px; width: 15px; height: 15px; float: right; position: relative; margin-top: -6px; transform:rotate(45deg); -webkit-transform:rotate(45deg);',
     'wrapper_style' : 'background-color: white;border:1px solid blue;',
     'wrapper_class' : '',
+    'icon_text' : '+',
 };
 SPS_SteamgiftLikes._dislike_style = {
-    'icon' : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACEAAAAhCAIAAADYhlU4AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC41ZYUyZQAAAPhJREFUSEvN1k0KwjAQQOHewa1HcKmn8LKCS8+jeIv6mgnG5nfSDMXhLUIK+ShtodPs5vl6n87Xw/FiFadxphzuDcaQ+QWYYDAmTAQw0+3+8Es3g0wKcP7EBSsmC7C/GDTOlADyBo0wFYCCQduYOkArg3qZJkCxQXpGA1DGIA2jBChvUJ3RA1Q0qMR0AVQzKMt0AdQwKGX8yk0ToLZBEfMdDUAqg1JGCdB/3EcE2D+PFDB+r7IA+2bfRwmQupi8UQckPZMxNICkZGJDD0gaZmX0AlKTCcY2QKoz3hgBpAqzGOOAVGJ2+U/0SzeDgJQyO/63GwJSYOb5A0nZHWu6sVhXAAAAAElFTkSuQmCC',
+    'icon' : SPS_SteamgiftLikes._icons.dislike,
     'icon_style' : 'padding: 1px 3px; width: 15px; height: 15px; float: right; position: relative; margin-top: -6px;',
     'active_icon_style' : 'padding: 1px 3px; width: 15px; height: 15px; float: right; position: relative; margin-top: -6px; transform:rotate(45deg); -webkit-transform:rotate(45deg);',
     'wrapper_style' : 'background-color: #DDDDDD; color: #DDDDDD',
     'wrapper_class' : 'is-faded',
+    'icon_text' : 'x',
 };
 
 // list of liked/disliked games as [gameId+'_']=>[gameName]  (game name is used for list on the setting page)
@@ -58,7 +77,7 @@ SPS_SteamgiftLikes.__disliked = {};
 
 // count button is used as semaphore on likes search process
 SPS_SteamgiftLikes.__countButton = null;
-
+SPS_SteamgiftLikes.__stopWork = false;
 
 // ======== Settings Page part =======
 
@@ -66,15 +85,21 @@ SPS_SteamgiftLikes.__countButton = null;
 SPS_SteamgiftLikes._appendSettings = function() {
     var rows = [];
     var i = 1;
-    var heads = '<thead><th>N</th><th>Game</th><th><input type="button" onclick="javascript:SPS_SteamgiftLikes.parseGameCount(this);" value="count"></th><th class="last_updated">&nbsp;</th></thead>';
+    var heads = '<thead><th width="20">&nbsp;</th>'+
+                       '<th>N&nbsp;<a href="javascript:SPS_SteamgiftLikes.sortGameList(\'added\',true);">+</a>&nbsp;<a href="javascript:SPS_SteamgiftLikes.sortGameList(\'added\',false);">--</a></th>'+
+                       '<th>Game&nbsp;<a href="javascript:SPS_SteamgiftLikes.sortGameList(\'name\',true)">+</a>&nbsp;<a href="javascript:SPS_SteamgiftLikes.sortGameList(\'name\',false);">--</a></th>'+
+                       '<th><input id="SPSCountButton" type="button" onclick="javascript:SPS_SteamgiftLikes.parseGameCount();" value="count"><br/><span class="last_updated">&nbsp;</span></th>'+
+                       '<th>&nbsp;<a href="javascript:SPS_SteamgiftLikes.sortGameList(\'time\',true)">+</a>&nbsp;<a href="javascript:SPS_SteamgiftLikes.sortGameList(\'time\',false);">--</a></th></thead>';
     this.__loadData();
     for (var key in this.__liked) {
         if (this.__liked.hasOwnProperty(key)) {
-            rows.push('<tr><td>'+(i++)+'&nbsp;<td class="game_name" '+SPS_SteamgiftLikes._gameIdAttribute+'="'+key+'"><a href="/giveaways/search?q='+this.__liked[key]+'">'+this.__liked[key]+'</a></td>'+
+            rows.push('<tr><td><img onclick="javascript:SPS_SteamgiftLikes.parseGameCount(this);" class="refresh_row" src="'+this._icons.refresh+'" width="8" height="8" border="0" style="opacity: 30"></td>'+
+                      '<td class="game_num">'+(i++)+'&nbsp;<td class="game_name" '+SPS_SteamgiftLikes._gameIdAttribute+'="'+key+'"><a href="/giveaways/search?q='+this.__liked[key]+'" target="_blank">'+this.__liked[key]+'</a></td>'+
                       '<td class="game_count">&nbsp;</td>'+
                       '<td class="game_links">&nbsp;</td></tr>');
         }
     }
+    this._appendStyles( this._styles.gameCount );
     this._appendSettingsRow( 1, 'Monitor', '<table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody></table>' );
 };
 
@@ -98,12 +123,17 @@ SPS_SteamgiftLikes._appendSettingsHead = function( title ) {
         );
 };
 
+SPS_SteamgiftLikes._appendStyles = function( styleContent ) {
+    $('head').append('<style type="text/css">'+styleContent+'</style>');
+};
+
 // append likes import/export form to page
 SPS_SteamgiftLikes._appendImportSettings = function() {
     var form = '<textarea id="import_settings_text"></textarea>'+
                '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pullImportSettings();"><i class="fa fa-arrow-circle-right"></i> Refresh</div>&nbsp;'+
                '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pushImportSettings(false);"><i class="fa fa-arrow-circle-right"></i> Import full</div>&nbsp;'+
                '<div class="form__submit-button js__submit-form" onclick="javascript:SPS_SteamgiftLikes.pushImportSettings(true);"><i class="fa fa-arrow-circle-right"></i> Merge</div>&nbsp;';
+    this._appendStyles( this._styles.gameSettings );
     this._appendSettingsRow( false, 'Like/dislike import', form );
     this.pullImportSettings();
 };
@@ -176,18 +206,98 @@ SPS_SteamgiftLikes.addCustomLike = function( type ) {
     return false;
 };
 
-// start the search-n-parse process
-SPS_SteamgiftLikes.parseGameCount = function( button ) {
-    if ( null !== this.__countButton ) {
+SPS_SteamgiftLikes.sortGameList = function( sortBy, asc ) {
+    if ( false === this._workStart() ) {
         return;
     }
-    this.__countButton = button;
-    $( this.__countButton ).attr('disabled','1');
-    $('.liked_games .last_updated').html('updating...');
-    $('.liked_games tbody tr').css('color','red');
-    // initiate parse for the first game in list
-    var $elem = $('.liked_games tbody tr').first();
-    this.__parseOneGameCount( $elem );
+console.log('start sort');
+    var tableBody = $('.liked_games tbody')[0];
+    var rows = tableBody.getElementsByTagName('tr');
+    var i, j, rowCount = rows.length;
+console.log(rowCount);
+    for(i = 0; i < rowCount-1; i++) {
+        for(j = 0; j < rowCount - i - 1; j++) {
+            if( this._shouldBeAfter(rows[j], rows[j+1], sortBy, asc ) ) {
+                tableBody.insertBefore(rows[j+1],rows[j]);
+            }
+        }
+    }
+console.log('end sort');
+    this._workStop();
+};
+
+SPS_SteamgiftLikes._shouldBeAfter = function( row1, row2, sortBy, asc ) {
+    var key1 = this._getRowSortKey(row1, sortBy);
+    var key2 = this._getRowSortKey(row2, sortBy);
+    if ( (key1 > key2 && asc) || (key1 < key2 && !asc) ) {
+        return true;
+    }
+    return false;
+};
+
+SPS_SteamgiftLikes._getRowSortKey = function( row, sortBy ) {
+    var key = '';
+    switch ( sortBy ) {
+        case 'name':
+            key = $('.game_name a',row).html();
+            break;
+        case 'time':
+            key = 1000*86400*1000;
+            var value = $('.game_links:first',row).attr('data-tick-time');
+            if ( value ) {
+                key = parseInt(value);
+                if ( isNaN(key) ) {
+                    key = 1000*86400*1000;
+                }
+            }
+            break;
+        case 'added':
+            key = parseInt($('.game_num',row).html());
+            break;
+    }
+    return key;
+};
+
+SPS_SteamgiftLikes._workStart = function() {
+console.log('work start');
+    if ( null !== this.__countButton ) {
+console.log('false');
+        return false;
+    }
+    this.__countButton = $('#SPSCountButton');
+    this.__countButton.css('color', 'gray');
+//    $( this.__countButton ).attr('disabled','1');
+    $('.liked_games .refresh_row').hide();
+console.log('true');
+    return true;
+};
+
+SPS_SteamgiftLikes._workStop = function() {
+console.log('work stop');
+//    $( this.__countButton ).removeAttr('disabled');
+    this.__countButton.removeAttr('style');
+    this.__countButton = null;
+    $('.liked_games .refresh_row').show();
+    this.__stopWork = false;
+};
+
+// start the search-n-parse process
+SPS_SteamgiftLikes.parseGameCount = function( row ) {
+    if ( false === this._workStart() ) {
+        this.__stopWork = true;
+        return;
+    }
+    var $elem;
+    if ( typeof(row) === 'undefined' ) {
+        $('.liked_games .last_updated').html('updating...');
+        $('.liked_games tbody tr').css('color','red');
+        // initiate parse for the first game in list
+        $elem = $('.liked_games tbody tr').first();
+        this.__parseOneGameCount( $elem );
+    } else {
+        $elem = $(row).parents('tr');
+        this.__parseOneGameCount( $elem, true );
+    }
 };
 
 // decode the giveaway finish data
@@ -216,7 +326,7 @@ SPS_SteamgiftLikes.__renderGameItemList = function( list) {
     for ( i in list ) {
         out += '<span style="color:'+list[i].color+'">';
         for ( j in list[i].linkList ) {
-            out += '&nbsp;<a href="'+list[i].linkList[j]+'">['+(counter++)+']</a>';
+            out += '&nbsp;<a href="'+list[i].linkList[j]+'" target="_blank">['+(counter++)+']</a>';
         }
         out += '</span>';
     }
@@ -224,15 +334,16 @@ SPS_SteamgiftLikes.__renderGameItemList = function( list) {
 };
 
 // search-n-parse one list item
-SPS_SteamgiftLikes.__parseOneGameCount = function( $row ) {
+SPS_SteamgiftLikes.__parseOneGameCount = function( $row, singleRowOnly ) {
     if ( !$row.length ) {
         // end of list is reached
-        // set last update time
-        var today = new Date();
-        $('.liked_games .last_updated').html(today.toTimeString().split(' ')[0]);
+        if ( typeof(singleRowOnly) === 'undefined' || !singleRowOnly ) {
+            // set last update time
+            var today = new Date();
+            $('.liked_games .last_updated').html(today.toTimeString().split(' ')[0]);
+        }
         // enable start button
-        $( this.__countButton ).removeAttr('disabled');
-        this.__countButton = null;
+        this._workStop();
     } else {
         var $countCell = $row.find('td.game_count');
         if ( $countCell.length ) {
@@ -247,6 +358,7 @@ SPS_SteamgiftLikes.__parseOneGameCount = function( $row ) {
                        var gameRowsCount = $( SPS_SteamgiftLikes._gameInListSelector , data ).length;
                        var $gameRowsNotEntered = $( SPS_SteamgiftLikes._gameInListNotEnteredSelector , data );
                        var gameRowsNotEnteredCount = $gameRowsNotEntered.length;
+                       var tickTime = null;
                        $countCell.html( gameRowsNotEnteredCount + '/' + gameRowsCount );
                        if ( gameRowsNotEnteredCount ) {
                            $row.css('color', 'blue');
@@ -263,6 +375,9 @@ SPS_SteamgiftLikes.__parseOneGameCount = function( $row ) {
                                         ( itemGameId != gameId && gameCounterOther >= 15 ) ) return;
                                    var giveawayLink = $(this).find( SPS_SteamgiftLikes._gameTitlePartSelector ).attr('href');
                                    var giveawayDeltaTime = SPS_SteamgiftLikes.__parseGiveawayTime( $(this).find('.fa-clock-o').next().attr('title') );
+                                   if ( null === tickTime ) {
+                                       tickTime = giveawayDeltaTime;
+                                   }
                                    for(var i in SPS_SteamgiftLikes._gameAlertColors ) {
                                        if ( SPS_SteamgiftLikes._gameAlertColors[i].time > giveawayDeltaTime ) {
                                            if ( itemGameId == gameId ) {
@@ -289,16 +404,25 @@ SPS_SteamgiftLikes.__parseOneGameCount = function( $row ) {
                                });
                            if ( gameCounterStrict ) {
                                $linksCell.append( SPS_SteamgiftLikes.__renderGameItemList( linksStrict )+'&nbsp;' );
+                               $linksCell.attr('data-tick-time', tickTime);
                            } else {
                                $linksCell.append( 'no strict match&nbsp;' );
+                               $linksCell.attr('data-tick-time', 30*86400*1000+tickTime);
                            }
                            if ( gameCounterOther ) {
                                $linksCell.append( '&nbsp;(('+SPS_SteamgiftLikes.__renderGameItemList( linksOther )+'&nbsp;))&nbsp;' );
                            }
                        } else {
+                           $linksCell.attr('data-tick-time', '');
                            $row.css('color', 'gray');
                        }
-                       setTimeout( function(){ SPS_SteamgiftLikes.__parseOneGameCount( $row.next() ); }, 500+1000*Math.random());
+                       if ( SPS_SteamgiftLikes.__stopWork ) {
+                           SPS_SteamgiftLikes.__parseOneGameCount( [] );
+                       } else if ( typeof(singleRowOnly) === 'undefined' || !singleRowOnly ) {
+                           setTimeout( function(){ SPS_SteamgiftLikes.__parseOneGameCount( $row.next() ); }, 500+1000*Math.random());
+                       } else {
+                           SPS_SteamgiftLikes.__parseOneGameCount( [], true );
+                       }
                    },
                    'html');
         }
@@ -345,23 +469,19 @@ SPS_SteamgiftLikes.removeGameFrom = function( type, button ) {
 };
 
 SPS_SteamgiftLikes._addIcon = function( $node, style, type, isSelected ) {
-    var $imgNode = $('<img />')
-    .addClass( this._iconClass )
-    .attr('src', style.icon);
+    var $icon = $('<div>'+style.icon_text+'</div>')
+        .addClass( this._iconClass )
+        .addClass( type );
     if ( isSelected ) {
         if ( !$node.find( '.giveaway__row-inner-wrap' ).hasClass('is-faded') ) {
             $node.attr('style', style.wrapper_style );
-            if ( style.wrapper_class ) {
-                $node.addClass(style.wrapper_class);
-            }
         }
-        $imgNode.attr('onclick','SPS_SteamgiftLikes.removeGameFrom(\''+type+'\', this)')
-            .attr('style', style.active_icon_style);
+        $node.addClass(type+'d');
+        $icon.attr('onclick','SPS_SteamgiftLikes.removeGameFrom(\''+type+'\', this)');
     } else {
-        $imgNode.attr('onclick','SPS_SteamgiftLikes.addGameTo(\''+type+'\', this)')
-            .attr('style', style.icon_style);
+        $icon.attr('onclick','SPS_SteamgiftLikes.addGameTo(\''+type+'\', this)');
     }
-    $node.append( $imgNode );
+    $node.append( $icon );
 };
 
 SPS_SteamgiftLikes._clearIcons = function( $node ) {
@@ -369,7 +489,9 @@ SPS_SteamgiftLikes._clearIcons = function( $node ) {
     $buttons.remove();
     $node.attr('style', '')
         .removeClass(this._dislike_style.wrapper_class)
-        .removeClass(this._like_style.wrapper_class);
+        .removeClass(this._like_style.wrapper_class)
+        .removeClass('liked')
+        .removeClass('disliked');
 };
 
 SPS_SteamgiftLikes._setLikesFor = function( $item ) {
@@ -393,6 +515,7 @@ SPS_SteamgiftLikes._setLikesFor = function( $item ) {
 };
 
 SPS_SteamgiftLikes._findLikes = function() {
+    this._appendStyles( this._styles.gameList );
     $( this._gameWrapperSelector ).each(function() {
         SPS_SteamgiftLikes._setLikesFor( $(this) );
     });
