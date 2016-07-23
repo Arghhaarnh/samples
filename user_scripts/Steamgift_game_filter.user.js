@@ -313,7 +313,7 @@ SPS_SteamgiftLikes.__parseGiveawayTime = function( timeString ) {
         parts[0] = today.toDateString();
         timeBonus += 86400*1000;
     }
-    if ( timePart.indexOf('pm') ) {
+    if ( timePart.indexOf('pm') >= 0 ) {
         timeBonus += 43200*1000; // half of the day
     }
     var tempString = parts.join('')+timePart.slice(0,-2)+':00'; // compose the datetime to parse
