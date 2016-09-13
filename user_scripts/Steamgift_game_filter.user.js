@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Steamgift game filter
-// @version      1.6
+// @version      1.7
 // @description  You can like\unlike the games on steamgift to fade\highlight them in the list
 //               Liked games list available on the settings page. Is searches and highlights
 //                giveaways, where you didn't entered yet.
@@ -47,6 +47,7 @@ SPS_SteamgiftLikes._styles = {
 .liked_games .game_refresh { min-width: 10px } \
 .liked_games .game_num { min-width: 32px } .liked_games td.game_num { min-width: 28px; padding-right: 6px; text-align: right; } \
 .liked_games .game_name { min-width: 200px } \
+.liked_games .game_name .no_steam_id { font-size: 10px; padding-right: 4px; padding-bottom: 2px; } \
 .liked_games .game_count { min-width: 55 px } .liked_games td.game_count { min-width: 45px; padding-right: 12px; text-align: right; } \
 .liked_games .game_delta { min-width: 70px } .liked_games td.game_delta { min-width: 65px; padding-right: 5px; text-align: right; }\
 .liked_games .game_links { min-width: 200px } \
@@ -68,7 +69,9 @@ SPS_SteamgiftLikes._styles = {
 .liked_games.in_progress { opacity: 0.7 } \
 .liked_games.in_progress .ajax_progress { width: 100%; height: 100%; display: block; padding-top: 15px; } \
 .liked_games.in_progress .sort_header, .in_progress .refresh_row { display: none; } \
-.liked_games .game_links input { width: auto; margin: 0 2px; } \
+.liked_games .game_links input, .service input { width: auto; margin: 0 2px; cursor: pointer; } \
+.service .spoiler_button { cursor: pointer; width: auto; height: 20px; font-size: 10px; padding: 0 10px; } \
+.service .spoiler { display: none; padding: 15px 5px 12px 4px; background-color: #DEDEDE; margin-top: -10px; } \
 ",
     gameList : "/* SPS game filter list styles */ \
 .sps_sgld_button { width: 17px; height: 17px; float: right; position: relative; margin: -6px 0px 1px 4px; border: solid 1px; border-radius: 3px; text-align: center; vertical-align: middle; cursor:pointer; padding: 1px 0 0 1px; } \
@@ -99,6 +102,8 @@ SPS_SteamgiftLikes._text = {
         counterPlain: 'Count plain',
         customLike : 'Like',
         customDislike : 'Dislike',
+        serviceToggle: 'Service',
+        checkOwn: 'Check for own games',
     },
     table : {
         number : 'N',
@@ -132,7 +137,7 @@ SPS_SteamgiftLikes.__plainCount = {};
 // append gamelist to page
 SPS_SteamgiftLikes._appendSettings = function() {
     var rows = [];
-    var i = 1;
+    var i = 1, name, steamId;
     var ajaxRoll = '<span class="ajax_progress">'+this._text.table.ajax+'</span>';
     var heads = '<thead><th  class="game_refresh">&nbsp;</th>'+
                        '<th class="game_num">'+ajaxRoll+'<span class="sort_header">'+this._text.table.number+'<br/>'+this._getSortingLinks('added')+'</span></th>'+
@@ -140,19 +145,29 @@ SPS_SteamgiftLikes._appendSettings = function() {
                        '<th class="game_count"><span class="last_updated"></span></th>'+
                        '<th class="game_delta">'+ajaxRoll+'<span class="sort_header">'+this._text.table.delta+'<br/>'+this._getSortingLinks('time')+'</span></th>'+
                        '<th class="game_links"><input id="SPSCountButton" type="button" onclick="javascript:SPS_SteamgiftLikes.parseGameCount();" value="'+this._text.button.counterRow+'"><input id="SPSCountButtonPlain" type="button" onclick="javascript:SPS_SteamgiftLikes.parseGameCountPlain();" value="'+this._text.button.counterPlain+'"></span></th></thead>';
+    var service = '<div class="service"><input type="button" class="spoiler_button" onclick="javascript:SPS_SteamgiftLikes.toggleSpoiler(this);" value="'+this._text.button.serviceToggle+'">'+
+                       '<div class="spoiler"><input type="button" onclick="javascript:SPS_SteamgiftLikes.checkOwnGames();" value="'+this._text.button.checkOwn+'"></div>'+
+                       '</div>';
     this.__loadData();
     for (var key in this.__liked) {
         if (this.__liked.hasOwnProperty(key)) {
+            if ( typeof this.__liked[key] === 'string' ) {
+                name = this.__liked[key];
+                steamId = false;
+            } else {
+                name = this.__liked[key].name;
+                steamId = ' '+SPS_SteamgiftLikes._steamIdAttribute+'="'+this.__liked[key].steamId+'"';
+            }
             rows.push('<tr><td class="game_refresh"><span onclick="javascript:SPS_SteamgiftLikes.parseGameCount(this);" class="refresh_row">'+this._text.table.refresh+'</span></td>'+
                       '<td class="game_num">'+(i++)+'</td>'+
-                      '<td class="game_name" '+SPS_SteamgiftLikes._gameIdAttribute+'="'+key+'"><a href="/giveaways/search?q='+this.__liked[key]+'" target="_blank">'+this.__liked[key]+'</a></td>'+
+                      '<td class="game_name" '+SPS_SteamgiftLikes._gameIdAttribute+'="'+key+'"'+(steamId?steamId:'')+'>'+(steamId?'':'<i class="fa fa-steam no_steam_id"></i>')+'<a href="/giveaways/search?q='+name+'" target="_blank">'+name+'</a></td>'+
                       '<td class="game_count"></td>'+
                       '<td class="game_delta"></td>'+
                       '<td class="game_links"></td></tr>');
         }
     }
     this._appendStyles( this._styles.gameCounter );
-    this._appendSettingsRow( 1, 'Monitor', '<table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody></table>' );
+    this._appendSettingsRow( 1, 'Monitor', service+'<table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody>'+heads+'</table>' );
 };
 
 SPS_SteamgiftLikes._getSortingLinks = function( criteria ) {
@@ -184,6 +199,61 @@ SPS_SteamgiftLikes._appendStyles = function( styleContent ) {
     $('head').append('<style type="text/css">'+styleContent+'</style>');
 };
 
+SPS_SteamgiftLikes.toggleSpoiler = function( button ) {
+    var $container = $(button).parent();
+    $container.find('.spoiler').toggle();
+};
+
+SPS_SteamgiftLikes.checkOwnGames = function() {
+    if ( false === this._workStart() ) {
+        this.__stopWork = true;
+        return;
+    }
+    this.__ownGames.games = {};
+    this.__checkOwnGamePage('/account/steam/games', 1);
+};
+
+SPS_SteamgiftLikes.__checkOwnGamePage = function( uri, pageNum ) {
+    var that = this;
+    $('.service_counter').html( pageNum );
+    $.get( uri,
+           {},
+           function( data ) {
+/*               var gameRowsCount = $( that._gameInListSelector , data ).length;
+               var $notEnteredRows = $( that._gameInListNotEnteredSelector , data );
+               if ( ! gameRowsCount ) {
+                   // final page is reached
+                   that.__renderPlainCount();
+                   var today = new Date();
+                   $('.liked_games .last_updated').html(today.toTimeString().split(' ')[0]);
+                   that._workStop();
+                   return;
+               }
+               $notEnteredRows.each(function(){
+                   var giveawayContainer = $(this).parent();
+                   var itemGameId = ''+$(giveawayContainer).attr( that._gameIdAttribute )+'_';
+                   if ( that.__disliked[itemGameId] ) {
+                       return;
+                   }
+                   if ( that.__liked[itemGameId] ) {
+                       that.__addCounter(itemGameId, giveawayContainer, false);
+                       return;
+                   }
+                   var gameName = $( that._gameTitlePartSelector , giveawayContainer ).html();
+                   var similarGameIdList = that.__isNameLiked( gameName );
+                   if ( similarGameIdList.length ) {
+                       that.__addCounter( similarGameIdList, giveawayContainer, true );
+                   }
+               });
+               if ( that.__stopWork ) {
+                   that._workStop();
+               } else {
+                   pageNum++;
+                   setTimeout( function(){ that.__parseOnePlainPage( '/account/steam/games/searh?page='+pageNum, pageNum ); }, 1000+2000*Math.random());
+               }
+*/           });
+};
+
 // append likes import/export form to page
 SPS_SteamgiftLikes._appendImportSettings = function() {
     var form = '<textarea id="import_settings_text"></textarea>'+
@@ -208,7 +278,7 @@ SPS_SteamgiftLikes.pushImportSettings = function( toMerge ) {
         if ( toImport.liked instanceof Object ) {
             if ( toMerge ) {
                 for (key in toImport.liked) {
-                    if (toImport.liked.hasOwnProperty(key) && (!this.__liked.hasOwnProperty(key) || !this.__liked[key]) ) {
+                    if (toImport.liked.hasOwnProperty(key) && (!this.__liked.hasOwnProperty(key) || 'string'===typeof this.__liked[key]) ) {
                         this.__liked[key] = toImport.liked[key];
                     }
                 }
@@ -246,11 +316,19 @@ SPS_SteamgiftLikes._appendCustomLikeSettings = function() {
 SPS_SteamgiftLikes.addCustomLike = function( type ) {
     var gameId = $('#like_game_id').val();
     if ( !gameId ) return false;
+    var steamId = this.__getSteamId($('.js__autocomplete-data .table__row-outer-wrap[data-autocomplete-id='+gameId+']'), 'short');
     gameId = ''+gameId+'_';
     var gameName = $('#like_game_name').val();
+    if ( gameName.substr(-3) === '...' ) {
+        gameName = gameName.substr(0,gameName.lastIndexOf(' '));
+    }
     this.__loadData();
     if ( 'like' == type && !this.__liked[gameId] ) {
-        this.__liked[gameId] = gameName;
+        if ( steamId ) {
+            this.__liked[gameId] = { name: gameName, steamId: steamId };
+        } else {
+            this.__liked[gameId] = gameName;
+        }
         this.__saveData();
     }
     else if ( 'dislike' == type && !this.__disliked[gameId] ) {
@@ -459,7 +537,7 @@ SPS_SteamgiftLikes.__parseOneGameCount = function( $row, singleRowOnly ) {
     } else {
         var $countCell = $row.find('td.game_count');
         if ( $countCell.length ) {
-            var gameName = $row.find('td.game_name > a').html();
+            var gameName = $row.find('td.game_name > a').html();console.log(gameName);
             var gameId = $row.find('td.game_name').attr( this._gameIdAttribute );
             var $linksCell = $row.find('td.game_links');
             var $deltaCell = $row.find('td.game_delta');
@@ -560,10 +638,11 @@ SPS_SteamgiftLikes.__addCounter = function( gameIdList, container, isSimilar ) {
 
 SPS_SteamgiftLikes.__isNameLiked = function( gameName ) {
     gameName = gameName.toLowerCase();
-    var gameIdList = [];
+    var gameIdList = [], localName;
     for( var key in this.__liked ) {
         if (this.__liked.hasOwnProperty(key)) {
-            if ( gameName.indexOf(this.__liked[key].toLowerCase()) >= 0 ) {
+            localName = ('string'===typeof this.__liked[key])?this.__liked[key]:this.__liked[key].name;
+            if ( gameName.indexOf(localName.toLowerCase()) >= 0 ) {
                 gameIdList.push(key);
             }
         }
@@ -648,11 +727,19 @@ SPS_SteamgiftLikes.__parseOnePlainPage = function( uri, pageNum ) {
 SPS_SteamgiftLikes.addGameTo = function( type, button ) {
     var $wrapper = $(button).parents( this._gameWrapperSelector );
     var gameName = $( this._gameTitlePartSelector , $wrapper ).html();
+    if ( gameName.substr(-3) === '...' ) {
+        gameName = gameName.substr(0,gameName.lastIndexOf(' '));
+    }
     if ( $wrapper.length ) {
         var gameId = ''+$wrapper.attr( this._gameIdAttribute )+'_';
+        var steamId = this.__getSteamId( $wrapper, 'full' );
         this.__loadData();
         if ( 'like' == type && !this.__liked[gameId] ) {
-            this.__liked[gameId] = gameName;
+            if ( steamId ) {
+                this.__liked[gameId] = { name: gameName, steamId: steamId };
+            } else {
+                this.__liked[gameId] = gameName;
+            }
             this.__saveData();
         }
         else if ( 'dislike' == type && !this.__disliked[gameId] ) {
@@ -662,6 +749,30 @@ SPS_SteamgiftLikes.addGameTo = function( type, button ) {
     }
     this._clearIcons( $wrapper );
     this._addIcon( $wrapper, type, true );
+};
+
+SPS_SteamgiftLikes.__getSteamId = function( $container, type ) {
+    var $link;
+    if ( 'full' == type ) {
+        $link = $container.find('.fa.fa-steam:first').parent();
+    } else {
+        $link = $container.find('.table__column__secondary-link:first');
+    }
+    var linktext = $link.attr('href');
+    var id = linktext.match( /\/(\d+)\//i );
+    if ( !id ) {
+        return false;
+    }
+    return id[1];
+};
+
+SPS_SteamgiftLikes.__actRemoteSteamId = function( gameId, name, action ) {
+/* https://www.steamgifts.com/ajax.php
+   POST
+search_query:X3: Terran Conflict
+page_number:1
+do:autocomplete_game
+*/
 };
 
 SPS_SteamgiftLikes.removeGameFrom = function( type, button ) {
@@ -711,6 +822,9 @@ SPS_SteamgiftLikes._setLikesFor = function( $item ) {
     var gameId = ''+$item.attr( this._gameIdAttribute )+'_';
     if ( this.__liked[gameId] ) {
         this._addIcon( $item, 'like', true );
+        if ( 'string' === typeof this.__liked[gameId] ) {
+            $item.append('<i class="fa fa-steam '+this._iconClass+'"></i>');
+        }
         return;
     }
     if ( this.__disliked[gameId] ) {
