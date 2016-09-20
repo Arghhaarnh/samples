@@ -172,13 +172,13 @@ SPS_SteamgiftLikes = function() {
 ",
         syncPage : '',
         singlePage : "/* SPS game filter single giveaway styles */ \
-.sps_sgld_button { width: 17px; height: 17px; float: right; position: absolute; margin: -6px 0px 1px 4px; border: solid 1px; border-radius: 3px; text-align: center; vertical-align: middle; cursor:pointer; padding: 1px 0 0 1px; } \
-.sps_sgld_button.like { background-image: -webkit-linear-gradient(top, #7cbee6, #0076bf); border-color: #d7eefa #1770a3 #042940 #9ecfeb; color: white; text-shadow: -1px -1px 0px #06284d; top: 85px; } \
+.sps_sgld_button { width: 17px; height: 17px; float: right; position: absolute; margin: -6px 0px 1px 4px; border: solid 1px; border-radius: 3px; text-align: center; vertical-align: middle; cursor:pointer; padding: 1px 0 0 1px; left:0; } \
+.sps_sgld_button.like { background-image: -webkit-linear-gradient(top, #7cbee6, #0076bf); border-color: #d7eefa #1770a3 #042940 #9ecfeb; color: white; text-shadow: -1px -1px 0px #06284d; top: 70px; } \
 .sps_sgld_button.like:hover { background-image: -webkit-linear-gradient(top, #7cbee6, #2990cc); color: #9ecfeb } \
-.sps_sgld_button.dislike { background-image: -webkit-linear-gradient(top, #b7c4cc, #344047); border-color: #dae0e3 #1e2326 #344047 #a3a8ad; color: white; text-shadow: -1px -1px 0px #02101f; } \
+.sps_sgld_button.dislike { background-image: -webkit-linear-gradient(top, #b7c4cc, #344047); border-color: #dae0e3 #1e2326 #344047 #a3a8ad; color: white; text-shadow: -1px -1px 0px #02101f; top: 92px; } \
 .sps_sgld_button.dislike:hover { background-image: -webkit-linear-gradient(top, #9aa2a6, #344047); color: #b8b8b8 } \
-.liked .sps_sgld_button.liked { background-image: -webkit-linear-gradient(top, #0076bf, #7cbee6); border-color: #042940 #9ecfeb #d7eefa #1770a3; color: #d7eefa; text-shadow: 1px 1px 0px #06284d; opacity: 0.5; padding: 0 1px 1px 0; } \
-.disliked .sps_sgld_button.disliked { transform:rotate(180deg); -webkit-transform:rotate(180deg); color: #b8b8b8; opacity: 0.5; } \
+.liked .sps_sgld_button.liked { background-image: -webkit-linear-gradient(top, #0076bf, #7cbee6); border-color: #042940 #9ecfeb #d7eefa #1770a3; color: #d7eefa; text-shadow: 1px 1px 0px #06284d; opacity: 0.5; padding: 0 1px 1px 0; top: 70px; } \
+.disliked .sps_sgld_button.disliked { transform:rotate(180deg); -webkit-transform:rotate(180deg); color: #b8b8b8; opacity: 0.5; top: 92px; } \
 .liked .sps_sgld_button.dislike, .disliked .sps_sgld_button.like { display: none; } \
 .liked.fresh .sps_sgld_button.liked { opacity: 1; margin-right: -1px } \
 .featured__inner-wrap.liked.fresh { background-color: #3F4A80; border: 1px solid; border-color: #a6a6ff #0000d9 #000070 #7575ff; border-radius: 3px; } \
@@ -901,9 +901,6 @@ SPS_SteamgiftLikes = function() {
                     listItem = [];
                 $('.table__row-outer-wrap', $container).each(function(){
                     checkSteamId = that.steamId(this);
-                    console.log( checkSteamId );
-                    console.log( 'vs' );
-                    console.log( steamId );
                     if ( checkSteamId == steamId ) {
                         listItem = $(this);
                     }
@@ -965,7 +962,11 @@ SPS_SteamgiftLikes = function() {
 
             // check is giveaway is not entered yet
             isNotEntered : function() {
-                return !$('.sidebar__entry-insert').hasClass('is-hidden');
+                var $control = $('.sidebar__entry-insert');
+                if ( $control.length == 0 ) {
+                    return false;
+                }
+                return !$control.hasClass('is-hidden');
             },
 
         },
@@ -975,7 +976,6 @@ SPS_SteamgiftLikes = function() {
             // get steamId from steam application url
             // return false if not faound
             steamIdByUrl : function( url ) {
-                console.log(url);
                 var matches = url.match( /\/(\d+)\//i );
                 if ( !matches ) {
                     return false;
@@ -1123,7 +1123,6 @@ SPS_SteamgiftLikes = function() {
                                   gotPage: function( data, response, pageNum) {
                                       thut._render.update.tableUpdateText(pageNum);
                                       var $listItem = thut._parse.customList.listItemBySteamId(steamId, response.html);
-                                      console.log($listItem);
                                       if ( $listItem.length > 0 ) {
                                           return thut._parse.customList.gameId($listItem);
                                       }
@@ -1273,12 +1272,13 @@ SPS_SteamgiftLikes = function() {
             // toImport : object with .liked and .disliked arrays
             // toMerge : if true, existing rows will be hold, new added; else just overwrites the lists
             import : function( toImport, toMerge ) {
-                var key;
+                var key,
+                    that = this;
                 if ( toImport.liked instanceof Object ) {
                     if ( toMerge ) {
                         thut._data.util.iterate(toImport.liked, function( key, item ) {
-                            if ( !this.isLiked(key) || this.isLikedOld(key) ) {
-                                this.__liked[key] = item;
+                            if ( !that.isLiked(key) || that.isLikedOld(key) ) {
+                                that.__liked[key] = item;
                             }
                         });
                     } else {
@@ -1288,8 +1288,8 @@ SPS_SteamgiftLikes = function() {
                 if ( toImport.disliked instanceof Object ) {
                     if ( toMerge ) {
                         thut._data.util.iterate(toImport.disliked, function( key, item ) {
-                            if ( !this.isDisliked(key) ) {
-                                this.__disliked[key] = item;
+                            if ( !that.isDisliked(key) ) {
+                                that.__disliked[key] = item;
                             }
                         });
                     } else {
@@ -1468,19 +1468,12 @@ SPS_SteamgiftLikes = function() {
                 steamId = thut._parse.singlePage.steamId();
                 gameId = thut._parse.singlePage.gameId();
             }
-            console.log(gameId);
-            console.log(steamId);
-            console.log(gameName);
             if ( gameId ) {
-            console.log('usual way');
                 thut._data.list.markAs( type, gameId, steamId, gameName );
                 thut._render.update.clearIconsFor($wrapper);
                 thut._render.append.likesForItem($wrapper);
-            console.log('usual way end');
             } else {
-            console.log('remote way');
                 thut._logic.actRemoteBySteamId( steamId, gameName, function(gameId,name,steamId){
-            console.log(gameId+','+name+','+steamId);
                     thut._render.update.pageGameId(gameId);
                     thut.action.markGameAs(type, button);
                 });
@@ -1489,18 +1482,14 @@ SPS_SteamgiftLikes = function() {
 
         // unmark game
         unmarkGameAs : function( type, button ) {
-            console.log('Unmark');
             var $wrapper = thut._parse.gameList.listItemByButton(button),
                 gameId;
-            console.log($wrapper);
             if ( $wrapper.length ) {
                 gameId = thut._parse.gameList.gameId($wrapper);
             } else {
                 gameId = thut._parse.singlePage.gameId();
             }
-            console.log(gameId);
             if ( gameId ) {
-            console.log('usual way');
                 thut._data.list.load();
                 var needSave = false;
                 if ( 'liked' == type ) {
@@ -1513,15 +1502,10 @@ SPS_SteamgiftLikes = function() {
                 }
                 thut._render.update.clearIconsFor($wrapper);
                 thut._render.append.likesForItem($wrapper);
-            console.log('usual way end');
             } else {
-            console.log('remote way');
                 var steamId = thut._parse.singlePage.steamId();
-            console.log(steamId);
                 var gameName = thut._parse.singlePage.gameName();
-            console.log(gameName);
                 thut._logic.actRemoteBySteamId( steamId, gameName, function(gameId,name,steamId){
-            console.log(gameId+','+name+','+steamId);
                     thut._render.update.pageGameId(gameId);
                     thut.action.unmarkGameAs(type, button);
                 });
@@ -1542,7 +1526,7 @@ SPS_SteamgiftLikes = function() {
                 thut._data.list.import( toImport, toMerge );
                 alert( __('alert.settingsApply') );
             } catch(e) {
-                alert( __('alert.settingsError') );
+                alert( __('alert.settingsError')+"\n"+e.message );
             }
         },
 
