@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Steamgift game filter
-// @version      2.1
+// @version      2.2
 // @description  You can like\unlike the games on steamgift to fade\highlight them in the list
 //               Liked games list available on the settings page. Is searches and highlights
 //                giveaways, where you didn't entered yet.
 //
-//               It is NOT A BOT. It is data aggregaton tool only.
+//               It is NOT A BOT. It is data aggregation tool only.
 //
 //               How to use:
 //                - game lists like search, frontpage etc. have like/dislike marks. Like will highlight the game in lists. Dislike - fade it.
@@ -71,6 +71,7 @@ SPS_SteamgiftLikes = function() {
                 liked : '<i class="fa fa-check"></i>',
                 disliked : '<i class="fa fa-ban"></i>',
                 steam : '<i class="fa fa-steam"></i>',
+                time : '<i class="fa fa-clock-o"></i>',
                 merge : 'Merge',
                 import : 'Import full',
                 refresh: 'Refresh',
@@ -96,6 +97,7 @@ SPS_SteamgiftLikes = function() {
                 merge : 'New items will be added to settings.\nExisting items will be kept.\nItems missed in new list will be kept.',
                 import : 'All the settings will be rewritten.\nItems missed in new list will be lost.',
                 refresh : 'Reread current settings and show it in window.',
+                time : 'Update the timing for scanned rows .',
             },
             alert : {
                 settingsApply : 'Settings applied succesfully',
@@ -154,6 +156,8 @@ SPS_SteamgiftLikes = function() {
 .liked_games.in_progress .ajax_progress { width: 100%; height: 100%; display: block; padding-top: 15px; } \
 .liked_games.in_progress .sort_header, .in_progress .refresh_row { display: none; } \
 .liked_games .game_links input, .service input { width: auto; margin: 0 2px; cursor: pointer; } \
+.liked_games .game_links .comment__submit-button { display: inline-block; width: 20px; margin: 0 2px; padding: 2px; cursor: pointer; height: 25px; vertical-align: middle; } \
+.liked_games .game_links .comment__submit-button i { margin-top: -10px; } \
 .service .spoiler_button { cursor: pointer; width: auto; height: 20px; font-size: 10px; padding: 0 10px; } \
 .service .spoiler { display: none; padding: 15px 5px 12px 4px; background-color: #DEDEDE; margin-top: -10px; } \
 ",
@@ -172,13 +176,13 @@ SPS_SteamgiftLikes = function() {
 ",
         syncPage : '',
         singlePage : "/* SPS game filter single giveaway styles */ \
-.sps_sgld_button { width: 17px; height: 17px; float: right; position: absolute; margin: -6px 0px 1px 4px; border: solid 1px; border-radius: 3px; text-align: center; vertical-align: middle; cursor:pointer; padding: 1px 0 0 1px; } \
-.sps_sgld_button.like { background-image: -webkit-linear-gradient(top, #7cbee6, #0076bf); border-color: #d7eefa #1770a3 #042940 #9ecfeb; color: white; text-shadow: -1px -1px 0px #06284d; top: 85px; } \
+.sps_sgld_button { width: 17px; height: 17px; float: right; position: absolute; margin: -6px 0px 1px 4px; border: solid 1px; border-radius: 3px; text-align: center; vertical-align: middle; cursor:pointer; padding: 1px 0 0 1px; left:0; } \
+.sps_sgld_button.like { background-image: -webkit-linear-gradient(top, #7cbee6, #0076bf); border-color: #d7eefa #1770a3 #042940 #9ecfeb; color: white; text-shadow: -1px -1px 0px #06284d; top: 70px; } \
 .sps_sgld_button.like:hover { background-image: -webkit-linear-gradient(top, #7cbee6, #2990cc); color: #9ecfeb } \
-.sps_sgld_button.dislike { background-image: -webkit-linear-gradient(top, #b7c4cc, #344047); border-color: #dae0e3 #1e2326 #344047 #a3a8ad; color: white; text-shadow: -1px -1px 0px #02101f; } \
+.sps_sgld_button.dislike { background-image: -webkit-linear-gradient(top, #b7c4cc, #344047); border-color: #dae0e3 #1e2326 #344047 #a3a8ad; color: white; text-shadow: -1px -1px 0px #02101f; top: 92px; } \
 .sps_sgld_button.dislike:hover { background-image: -webkit-linear-gradient(top, #9aa2a6, #344047); color: #b8b8b8 } \
-.liked .sps_sgld_button.liked { background-image: -webkit-linear-gradient(top, #0076bf, #7cbee6); border-color: #042940 #9ecfeb #d7eefa #1770a3; color: #d7eefa; text-shadow: 1px 1px 0px #06284d; opacity: 0.5; padding: 0 1px 1px 0; } \
-.disliked .sps_sgld_button.disliked { transform:rotate(180deg); -webkit-transform:rotate(180deg); color: #b8b8b8; opacity: 0.5; } \
+.liked .sps_sgld_button.liked { background-image: -webkit-linear-gradient(top, #0076bf, #7cbee6); border-color: #042940 #9ecfeb #d7eefa #1770a3; color: #d7eefa; text-shadow: 1px 1px 0px #06284d; opacity: 0.5; padding: 0 1px 1px 0; top: 70px; } \
+.disliked .sps_sgld_button.disliked { transform:rotate(180deg); -webkit-transform:rotate(180deg); color: #b8b8b8; opacity: 0.5; top: 92px; } \
 .liked .sps_sgld_button.dislike, .disliked .sps_sgld_button.like { display: none; } \
 .liked.fresh .sps_sgld_button.liked { opacity: 1; margin-right: -1px } \
 .featured__inner-wrap.liked.fresh { background-color: #3F4A80; border: 1px solid; border-color: #a6a6ff #0000d9 #000070 #7575ff; border-radius: 3px; } \
@@ -328,7 +332,9 @@ SPS_SteamgiftLikes = function() {
                        '<th class="game_name">'+ajaxRoll+'<span class="sort_header">'+__('table.name')+'<br/>'+this.sortingLinks('name')+'</span></th>'+
                        '<th class="game_count"><span class="last_updated"></span></th>'+
                        '<th class="game_delta">'+ajaxRoll+'<span class="sort_header">'+__('table.delta')+'<br/>'+this.sortingLinks('time')+'</span></th>'+
-                       '<th class="game_links"><input type="button" onclick="javascript:SPS_SteamgiftLikes.action.scanGames();" value="'+__('button.scanRow')+'"><input type="button" onclick="javascript:SPS_SteamgiftLikes.action.scanGamesPlain();" value="'+__('button.scanPlain')+'"></span></th></thead>';
+                       '<th class="game_links"><div class="comment__submit-button" onclick="javascript:SPS_SteamgiftLikes.action.updateTime();" title="'+__('description.time')+'">'+__('button.time')+'</div>'+
+                                              '<input type="button" onclick="javascript:SPS_SteamgiftLikes.action.scanGames();" value="'+__('button.scanRow')+'">'+
+                                              '<input type="button" onclick="javascript:SPS_SteamgiftLikes.action.scanGamesPlain();" value="'+__('button.scanPlain')+'"></th></thead>';
                 return heads;
             },
 
@@ -378,6 +384,7 @@ SPS_SteamgiftLikes = function() {
             linkListFull : function( strictList, nostrictList ) {
                 var row = '',
                     strictRender = 'no scrict match';
+                thut._logic.prepareNow();
                 if ( strictList.length ) {
                     strictRender = thut._render.likedTable.linkList( strictList );
                 }
@@ -393,12 +400,12 @@ SPS_SteamgiftLikes = function() {
                 for ( i in list ) {
                     linkClass = '';
                     for ( j in thut._settings.filter._gameAlertStyles ) {
-                        if ( list[i].delta <= thut._settings.filter._gameAlertStyles[j].time ) {
+                        if ( list[i].time - thut._logic.getNow() <= thut._settings.filter._gameAlertStyles[j].time ) {
                             linkClass = thut._settings.filter._gameAlertStyles[j].class;
                             break;
                         }
                     }
-                    out += '<a href="'+list[i].link+'" class="link-item '+linkClass+'" target="_blank" title="'+thut._render.likedTable.deltaTime( list[i].delta )+'">['+(counter++)+']</a>';
+                    out += '<a href="'+list[i].link+'" class="link-item '+linkClass+'" target="_blank" data-tick-time="'+list[i].time+'">['+(counter++)+']</a>';
                 }
                 return out;
             },
@@ -417,15 +424,23 @@ SPS_SteamgiftLikes = function() {
             },
 
             // time before giveavay ends
-            // delta: time in ms
+            // timestamp: giveaway end time  in ms
+            // ignoreNostrict: don't add () for deltas non-strict
             // return time sting like '1d 10h' or '15:05:03'
-            deltaTime : function( delta ) {
-                var out = '', isNostrict = false, i;
+            deltaTime : function( timestamp, ignoreNostrict ) {
+                var out = '', isNostrict = false, i,
+                    date = new Date();
+                var delta = timestamp - thut._logic.getNow();
+                if ( 'undefined' == typeof ignoreNostrict ) {
+                    ignoreNostrict = false;
+                }
+                if ( delta <= 0 ) {
+                    return "time's out";
+                }
                 if ( delta > TIME__MONTH_MS ) {
                     delta -= TIME__MONTH_MS;
                     isNostrict = true;
                 }
-                var date = new Date();
                 date.setTime(delta);
                 var day = date.getUTCDate(true)-1;
                 if ( day > 0 ) {
@@ -444,7 +459,7 @@ SPS_SteamgiftLikes = function() {
                     }
                     out += time.join(':');
                 }
-                if ( isNostrict ) {
+                if ( isNostrict && !ignoreNostrict ) {
                     out = '( '+out+' )';
                 }
                 return out;
@@ -597,6 +612,7 @@ SPS_SteamgiftLikes = function() {
             // update one table row with game-list scan results
             // look the actions.scanGames and action.scanOneRow for whole process
             tableRowScanned : function( $row, response ) {
+                thut._logic.prepareNow();
                 thut._render.update.resetTable($row);
                 var gameId = thut._parse.likedTable.gameId($row);
                 var $gameRows = $(thut._settings.site._gameInListSelector, response);
@@ -621,6 +637,7 @@ SPS_SteamgiftLikes = function() {
             // update counter data for one game-list page scanned
             // look the actions.scanGamesPlain for whole process
             plainPageScanned : function( exitFlag, response, pageNum ) {
+                thut._logic.prepareNow();
                 thut._render.update.tableUpdateText(pageNum);
                 var $gameRows = $(thut._settings.site._gameInListSelector, response);
                 $gameRows.each(function(){
@@ -664,18 +681,20 @@ SPS_SteamgiftLikes = function() {
 
             // clean the scanned data view for liked games table
             resetTable : function($row) {
+                thut._logic.prepareNow();
                 if ( 'undefined' == typeof $row ) {
                     $row = $('.liked_games tbody tr');
                 }
                 $row.removeClass('to_count').removeClass('has_links').addClass('no_links');
                 $('td.game_count', $row).html('0 / 0');
                 $('td.game_links', $row).html('');
-                $('td.game_delta', $row).html('').attr('data-tick-time', TIME__FARFAR_MS);
+                $('td.game_delta', $row).html('').attr('data-tick-time', TIME__FARFAR_MS + thut._logic.getNow() );
             },
 
             // update the table rows by scanned counter data
             // gameId : if set, updates the row for given game; iterate all the counter data else
-            plainTable : function( gameId ) {
+            // skipTimeUpdate : don't render time deltas for row (used to render it for whole table)
+            plainTable : function( gameId, skipTimeUpdate ) {
                 if ( typeof(gameId) !== 'undefined' && gameId ) {
                     var record = thut._data.counter.getRecord(gameId);
                     if ( ! record ) {
@@ -687,17 +706,20 @@ SPS_SteamgiftLikes = function() {
                         return;
                     }
                     $('td.game_count', row).html( record.strict.length + (record.nostrict.length?(' ('+record.nostrict.length+')'):'')+' / '+record.totalCount);
-                    $('td.game_delta', row).attr('data-tick-time', record.delta);
+                    $('td.game_delta', row).attr('data-tick-time', record.minTime);
                     if ( record.strict.length + record.nostrict.length > 0 ) {
                         $('td.game_links', row).html( thut._render.likedTable.linkListFull( record.strict, record.nostrict ) );
-                        $('td.game_delta', row).html( thut._render.likedTable.deltaTime( record.delta ) );
                         $(row).removeClass('to_count').removeClass('no_links').addClass('has_links');
+                    }
+                    if ( !skipTimeUpdate ) {
+                        thut._render.update.tableTimeDelta(row);
                     }
                     return;
                 }
                 thut._render.update.resetTable();
-                thut._data.counter.iterateWith( this.plainTable );
+                thut._data.counter.iterateWith( this.plainTable, true );
                 thut._render.update.tableUpdatedRestore();
+                thut._render.update.tableTimeDelta();
             },
 
             // set the 'updated' cell content
@@ -749,6 +771,31 @@ SPS_SteamgiftLikes = function() {
                 }
             },
 
+            // update delta times for rows and lists
+            tableTimeDelta : function(row) {
+                thut._logic.prepareNow();
+                if ( 'undefined' == typeof row ) {
+                    row = $('tr.has_links');
+                } else {
+                    if ( !$(row).hasClass('has_links') ) {
+                        return;
+                    }
+                }
+                $('td.game_delta', row).each( function(){
+                    var time = parseInt($(this).attr('data-tick-time'));
+                    if ( isNaN(time) ) {
+                        return;
+                    }
+                    $(this).html(thut._render.likedTable.deltaTime(time));
+                });
+                $('td.game_links a.link-item', row).each( function(){
+                    var time = parseInt($(this).attr('data-tick-time'));
+                    if ( isNaN(time) ) {
+                        return;
+                    }
+                    $(this).attr('title', thut._render.likedTable.deltaTime(time, true));
+                });
+            },
 
         },
     },
@@ -813,12 +860,12 @@ SPS_SteamgiftLikes = function() {
                         key = $('.game_name a',row).html();
                         break;
                     case 'time':
-                        key = TIME__FARFAR_MS;
+                        key = TIME__FARFAR_MS + thut._logic.getNow();
                         var value = $('.game_delta:first',row).attr('data-tick-time');
                         if ( value ) {
                             key = parseInt(value);
                             if ( isNaN(key) ) {
-                                key = TIME__FARFAR_MS;
+                                key = TIME__FARFAR_MS + thut._logic.getNow();
                             }
                         }
                         break;
@@ -901,9 +948,6 @@ SPS_SteamgiftLikes = function() {
                     listItem = [];
                 $('.table__row-outer-wrap', $container).each(function(){
                     checkSteamId = that.steamId(this);
-                    console.log( checkSteamId );
-                    console.log( 'vs' );
-                    console.log( steamId );
                     if ( checkSteamId == steamId ) {
                         listItem = $(this);
                     }
@@ -965,7 +1009,11 @@ SPS_SteamgiftLikes = function() {
 
             // check is giveaway is not entered yet
             isNotEntered : function() {
-                return !$('.sidebar__entry-insert').hasClass('is-hidden');
+                var $control = $('.sidebar__entry-insert');
+                if ( $control.length == 0 ) {
+                    return false;
+                }
+                return !$control.hasClass('is-hidden');
             },
 
         },
@@ -975,7 +1023,6 @@ SPS_SteamgiftLikes = function() {
             // get steamId from steam application url
             // return false if not faound
             steamIdByUrl : function( url ) {
-                console.log(url);
                 var matches = url.match( /\/(\d+)\//i );
                 if ( !matches ) {
                     return false;
@@ -992,7 +1039,7 @@ SPS_SteamgiftLikes = function() {
                 return name;
             },
 
-            // get the giveaway endtime delta in ms by text time description
+            // get the giveaway end time in ms by text time description
             giveawayTime : function( timeString ) {
                 var parts = timeString.split(',');
                 var timePart = parts.pop();
@@ -1013,7 +1060,7 @@ SPS_SteamgiftLikes = function() {
                 if ( tempDate.getHours()%12 == 0 ) {
                     timeBonus -= TIME__DAYHALF_MS;
                 }
-                return tempDate.getTime()+timeBonus-today.getTime();
+                return tempDate.getTime()+timeBonus;
             },
 
             // detect the icons types needed for game by gameId
@@ -1041,6 +1088,9 @@ SPS_SteamgiftLikes = function() {
     // ======== Logic block part =======
 
     _logic : {
+        // now timestamp
+        __now : 0,
+
         // compare two table rows for sorting
         rowShouldBeAfter : function( row1, row2, sortBy, asc ) {
             var key1 = thut._parse.likedTable.sortKey(row1, sortBy);
@@ -1058,7 +1108,7 @@ SPS_SteamgiftLikes = function() {
         addCounter : function( gameIdList, container, isStrict ) {
             var giveawayLink = thut._parse.gameList.giveawayUrl(container);
             var giveawayDeltaTime = thut._parse.util.giveawayTime( thut._parse.gameList.giveawayTime(container) );
-            var giveawayItem = {link: giveawayLink, delta: giveawayDeltaTime};
+            var giveawayItem = {link: giveawayLink, time: giveawayDeltaTime};
             var isNotEntered = thut._parse.gameList.isNotEntered(container);
             if ( !Array.isArray( gameIdList ) ) {
                 gameIdList = [gameIdList];
@@ -1123,7 +1173,6 @@ SPS_SteamgiftLikes = function() {
                                   gotPage: function( data, response, pageNum) {
                                       thut._render.update.tableUpdateText(pageNum);
                                       var $listItem = thut._parse.customList.listItemBySteamId(steamId, response.html);
-                                      console.log($listItem);
                                       if ( $listItem.length > 0 ) {
                                           return thut._parse.customList.gameId($listItem);
                                       }
@@ -1144,6 +1193,15 @@ SPS_SteamgiftLikes = function() {
                                   },
                                 },
                                true);
+        },
+
+        prepareNow : function() {
+            var now = new Date();
+            this.__now = now.getTime();
+        },
+
+        getNow : function() {
+            return this.__now;
         },
     },
 
@@ -1273,12 +1331,13 @@ SPS_SteamgiftLikes = function() {
             // toImport : object with .liked and .disliked arrays
             // toMerge : if true, existing rows will be hold, new added; else just overwrites the lists
             import : function( toImport, toMerge ) {
-                var key;
+                var key,
+                    that = this;
                 if ( toImport.liked instanceof Object ) {
                     if ( toMerge ) {
                         thut._data.util.iterate(toImport.liked, function( key, item ) {
-                            if ( !this.isLiked(key) || this.isLikedOld(key) ) {
-                                this.__liked[key] = item;
+                            if ( !that.isLiked(key) || that.isLikedOld(key) ) {
+                                that.__liked[key] = item;
                             }
                         });
                     } else {
@@ -1288,8 +1347,8 @@ SPS_SteamgiftLikes = function() {
                 if ( toImport.disliked instanceof Object ) {
                     if ( toMerge ) {
                         thut._data.util.iterate(toImport.disliked, function( key, item ) {
-                            if ( !this.isDisliked(key) ) {
-                                this.__disliked[key] = item;
+                            if ( !that.isDisliked(key) ) {
+                                that.__disliked[key] = item;
                             }
                         });
                     } else {
@@ -1335,7 +1394,7 @@ SPS_SteamgiftLikes = function() {
             //     [gameId+'_']=> { strict: list of giveaways strictly for this game
             //                      nostrict: list of giveaways for games with same name or about
             //                      totalCount: common count of giveaways found, including entered
-            //                      delta: time to clothest giveaway end
+            //                      minTime: time to clothest giveaway end
             //                      }
             __plainCount : {},
 
@@ -1387,7 +1446,7 @@ SPS_SteamgiftLikes = function() {
             initRecord : function( gameId ) {
                 if ( !this.__plainCount.games[gameId] ) {
                     // time__later used to diff the game with entries and no entries (which have time_farfar) when sorting
-                    this.__plainCount.games[gameId] = { strict: [], nostrict: [], totalCount: 0, delta: TIME__LATER_MS };
+                    this.__plainCount.games[gameId] = { strict: [], nostrict: [], totalCount: 0, minTime: TIME__LATER_MS + thut._logic.getNow() };
                 }
             },
 
@@ -1402,18 +1461,18 @@ SPS_SteamgiftLikes = function() {
                 if ( this.__plainCount.games[gameId][listType].length < 15 ) {
                     this.__plainCount.games[gameId][listType].push(gameData);
                 }
-                this.proposeDelta(gameId, gameData.delta + timeBonus);
+                this.proposeMinTime(gameId, gameData.time + timeBonus);
             },
 
             // set delta time for record, if it is less then already stored
-            proposeDelta : function( gameId, deltaTime ) {
+            proposeMinTime : function( gameId, minTime ) {
                 if ( 'undefined' == typeof this.__plainCount.games[gameId] ) {
                     return false;
                 }
-                if ( deltaTime >= this.__plainCount.games[gameId].delta ) {
+                if ( minTime >= this.__plainCount.games[gameId].minTime ) {
                     return false;
                 }
-                this.__plainCount.games[gameId].delta = deltaTime;
+                this.__plainCount.games[gameId].minTime = minTime;
                 return true;
             },
 
@@ -1468,19 +1527,12 @@ SPS_SteamgiftLikes = function() {
                 steamId = thut._parse.singlePage.steamId();
                 gameId = thut._parse.singlePage.gameId();
             }
-            console.log(gameId);
-            console.log(steamId);
-            console.log(gameName);
             if ( gameId ) {
-            console.log('usual way');
                 thut._data.list.markAs( type, gameId, steamId, gameName );
                 thut._render.update.clearIconsFor($wrapper);
                 thut._render.append.likesForItem($wrapper);
-            console.log('usual way end');
             } else {
-            console.log('remote way');
                 thut._logic.actRemoteBySteamId( steamId, gameName, function(gameId,name,steamId){
-            console.log(gameId+','+name+','+steamId);
                     thut._render.update.pageGameId(gameId);
                     thut.action.markGameAs(type, button);
                 });
@@ -1489,18 +1541,14 @@ SPS_SteamgiftLikes = function() {
 
         // unmark game
         unmarkGameAs : function( type, button ) {
-            console.log('Unmark');
             var $wrapper = thut._parse.gameList.listItemByButton(button),
                 gameId;
-            console.log($wrapper);
             if ( $wrapper.length ) {
                 gameId = thut._parse.gameList.gameId($wrapper);
             } else {
                 gameId = thut._parse.singlePage.gameId();
             }
-            console.log(gameId);
             if ( gameId ) {
-            console.log('usual way');
                 thut._data.list.load();
                 var needSave = false;
                 if ( 'liked' == type ) {
@@ -1513,15 +1561,10 @@ SPS_SteamgiftLikes = function() {
                 }
                 thut._render.update.clearIconsFor($wrapper);
                 thut._render.append.likesForItem($wrapper);
-            console.log('usual way end');
             } else {
-            console.log('remote way');
                 var steamId = thut._parse.singlePage.steamId();
-            console.log(steamId);
                 var gameName = thut._parse.singlePage.gameName();
-            console.log(gameName);
                 thut._logic.actRemoteBySteamId( steamId, gameName, function(gameId,name,steamId){
-            console.log(gameId+','+name+','+steamId);
                     thut._render.update.pageGameId(gameId);
                     thut.action.unmarkGameAs(type, button);
                 });
@@ -1542,7 +1585,7 @@ SPS_SteamgiftLikes = function() {
                 thut._data.list.import( toImport, toMerge );
                 alert( __('alert.settingsApply') );
             } catch(e) {
-                alert( __('alert.settingsError') );
+                alert( __('alert.settingsError')+"\n"+e.message );
             }
         },
 
@@ -1566,16 +1609,18 @@ SPS_SteamgiftLikes = function() {
                 return;
             }
             thut._render.update.workStart();
-            var sortBy = thut._parse.likedTable.sortCriteria(button);
-            var asc = thut._parse.likedTable.sortOrder(button);
-            var copy = $('.liked_games').parent().html();
+            var sortBy = thut._parse.likedTable.sortCriteria(button),
+                asc = thut._parse.likedTable.sortOrder(button),
+                copy = $('.liked_games').parent().html();
             var tableBody = $('tbody', copy)[0];
             var rows = tableBody.getElementsByTagName('tr');
-            var i, j, rowCount = rows.length;
+            var i, j, rowCount = rows.length,
+                ascBool = (asc=='1')?true:false;
             setTimeout( function(){
+                thut._logic.prepareNow();
                 for(i = 0; i < rowCount-1; i++) {
                     for(j = 0; j < rowCount - i - 1; j++) {
-                        if( thut._logic.rowShouldBeAfter(rows[j], rows[j+1], sortBy, asc ) ) {
+                        if( thut._logic.rowShouldBeAfter(rows[j], rows[j+1], sortBy, ascBool ) ) {
                             tableBody.insertBefore(rows[j+1],rows[j]);
                         }
                     }
@@ -1602,6 +1647,7 @@ SPS_SteamgiftLikes = function() {
                                    stop: function() {
                                        thut._render.update.workStop();
                                        thut._render.update.tableUpdatedRestore();
+                                       thut._render.update.sortButtons();
                                        thut._data.counter.save();
                                    },
                                  });
@@ -1626,6 +1672,7 @@ SPS_SteamgiftLikes = function() {
                                   stop: function(data){
                                       thut._render.update.workStop(true);
                                       thut._data.counter.save();
+                                      thut._render.update.sortButtons();
                                   },
                                 });
         },
@@ -1646,6 +1693,7 @@ SPS_SteamgiftLikes = function() {
                                   stop: function(data){
                                       thut._render.update.plainTable();
                                       thut._render.update.workStop(true);
+                                      thut._render.update.sortButtons();
                                       thut._data.counter.save();
                                   },
                                 });
@@ -1704,6 +1752,11 @@ SPS_SteamgiftLikes = function() {
                     $row.remove();
                 }
             }
+        },
+
+        // updates the timing for scanned table
+        updateTime : function() {
+            thut._render.update.tableTimeDelta();
         },
     },
 
