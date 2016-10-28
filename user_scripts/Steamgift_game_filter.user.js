@@ -840,8 +840,19 @@ SPS_SteamgiftLikes = function() {
             },
 
             // get giveaway time end for list item
+            // @deprecated see giveawayTimestamp instead
             giveawayTime : function( $listItem ) {
                 return $('.fa-clock-o', $listItem).next().attr('title');
+            },
+
+            // get giveaway end timestamp for list item
+            giveawayTimestamp : function( $listItem ) {
+                var timeSeconds = $('.fa-clock-o', $listItem).next().attr('data-timestamp');
+                timeSeconds = parseInt(timeSeconds);
+                if ( NaN == typeof timeSeconds ) {
+                    return 0;
+                }
+                return timeSeconds * 1000;
             },
 
             // check if giveaway is not entered yet
@@ -1107,7 +1118,7 @@ SPS_SteamgiftLikes = function() {
         // isStrict : if true, the strict list of counter item will be appended; nonStrict else
         addCounter : function( gameIdList, container, isStrict ) {
             var giveawayLink = thut._parse.gameList.giveawayUrl(container);
-            var giveawayDeltaTime = thut._parse.util.giveawayTime( thut._parse.gameList.giveawayTime(container) );
+            var giveawayDeltaTime = thut._parse.gameList.giveawayTimestamp(container);
             var giveawayItem = {link: giveawayLink, time: giveawayDeltaTime};
             var isNotEntered = thut._parse.gameList.isNotEntered(container);
             if ( !Array.isArray( gameIdList ) ) {
