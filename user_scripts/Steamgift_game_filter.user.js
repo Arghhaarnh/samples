@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Steamgift game filter
-// @version      2.2
+// @version      2.3
 // @description  You can like\unlike the games on steamgift to fade\highlight them in the list
 //               Liked games list available on the settings page. Is searches and highlights
 //                giveaways, where you didn't entered yet.
@@ -1608,7 +1608,7 @@ SPS_SteamgiftLikes = function() {
             var steamId = thut._parse.customList.steamId($listItem);
             var gameId = ''+rawGameId+'_';
             var gameName = thut._parse.customList.gameName();
-            thut._data.list.markGameAs( type, gameId, steamId, gameName );
+            thut._data.list.markAs( type, gameId, steamId, gameName );
             thut._render.update.importSettings();
             thut._render.update.resetCustom();
             return false;
