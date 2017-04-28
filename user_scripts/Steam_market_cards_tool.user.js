@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Steam Market cards tool
-// @version      1.0.0
+// @version      1.0.1
 // @description  Check up the steam game cards value on the game comunity page
 // @author       Blood_again
 // @match        http://steamcommunity.com/*
@@ -194,7 +194,7 @@ SPS_SteamCardTool = function() {
                     var cardCount = thut._parse.cardList.cardCount($this);
                     var cardPrice = thut._parse.cardList.cardPrice($this);
                     var cardPriceParts = thut._parse.cardList.priceParts(cardPrice);
-                    thut._data.counter.recordCard(data.gameId, cardCount, cardPriceParts, isFoil);
+                    thut._data.counter.recordCard(cardCount, cardPriceParts, isFoil);
                 });
                 if ( $cardRows.length < thut._settings.site._cardListPageSize ) {
                     data.done = true;
@@ -202,8 +202,8 @@ SPS_SteamCardTool = function() {
                 return data;
             },
 
-            cardCounterOnPage : function( gameId ) {
-                var gameRecord = thut._data.counter.getRecord(gameId);
+            cardCounterOnPage : function() {
+                var gameRecord = thut._data.counter.getRecord();
                 var cardsNormal = this.cardCountNPrice(gameRecord.normal);
                 var mainText = '<span class="card_outcome">'+__('counter.price')+thut._render.cardList.price(gameRecord.normal.priceGot,gameRecord.normal.currencyTpl)+'</span>'+cardsNormal;
                 var detailedText = '<span class="detail_row_name">'+__('counter.normal')+'</span>'+cardsNormal+'<br/><span class="detail_row_name">'+__('counter.foil')+'</span>'+this.cardCountNPrice(gameRecord.foil)+'<br/>...';
@@ -479,14 +479,11 @@ SPS_SteamCardTool = function() {
                 if ( record.cardCount%2 ) {
                     record.priceGot += priceParts.gotPrice;
                 }
-                console.log(isFoil);
-                console.log(priceParts);
                 if ( isFoil ) {
                     this.__current.foil = record;
                 } else {
                     this.__current.normal = record;
                 }
-                console.log(this.__current);
             },
 
             _cloneRecord : function( src, dst ) {
@@ -533,7 +530,7 @@ SPS_SteamCardTool = function() {
                                       return thut._render.cardList.cardListUrl( gameName, pageNum );
                                   },
                                   stop: function(data){
-                                      thut._render.update.cardCounterOnPage( gameId );
+                                      thut._render.update.cardCounterOnPage();
                                       thut._render.update.countWorkStop();
                                       thut._data.counter.saveCurrent();
                                   },
