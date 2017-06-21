@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Steamgift game filter
-// @version      2.3
+// @version      2.3.2
 // @description  You can like\unlike the games on steamgift to fade\highlight them in the list
 //               Liked games list available on the settings page. Is searches and highlights
 //                giveaways, where you didn't entered yet.
@@ -82,6 +82,8 @@ SPS_SteamgiftLikes = function() {
                 customDislike : 'Dislike',
                 serviceToggle: 'Service',
                 checkOwn: 'Check for own games',
+                toggleDeleteOff: 'Deleting games is OFF',
+                toggleDeleteOn: 'Deleting games is ON',
             },
             table : {
                 number : 'N',
@@ -215,6 +217,7 @@ SPS_SteamgiftLikes = function() {
                 return heads;
             },
 
+            // pair of sorting links for table header
             sortingLinks : function( criteria ) {
                 return '<span class="sort_link" onclick="javascript:SPS_SteamgiftLikes.action.sortList(this);" data-criteria="'+criteria+'" data-order="1">'+__('table.sortAsc')+'</span>'+
                        '<span class="sort_link" onclick="javascript:SPS_SteamgiftLikes.action.sortList(this);" data-criteria="'+criteria+'" data-order="0">'+__('table.sortDesc')+'</span>';
@@ -224,7 +227,8 @@ SPS_SteamgiftLikes = function() {
             servicePanel : function() {
                 return '<div class="service">'+
                        '<input type="button" class="spoiler_button" onclick="javascript:SPS_SteamgiftLikes.action.toggleSpoiler(this);" value="'+__('button.serviceToggle')+'">'+
-                       '<div class="spoiler"><input type="button" onclick="javascript:SPS_SteamgiftLikes.action.checkOwnGames();" value="'+__('button.checkOwn')+'"></div>'+
+                       '<div class="spoiler"><input id="checkOwnButton" type="button" onclick="javascript:SPS_SteamgiftLikes.action.checkOwnGames();" value="'+__('button.checkOwn')+'"></div>'+
+                       '<div class="spoiler"><input id="toggleDeleteButton" type="button" onclick="javascript:SPS_SteamgiftLikes.action.toggleDeleteGames();" value="'+__('button.toggleDeleteOff')+'"></div>'+
                        '</div>';
             },
 
@@ -247,7 +251,7 @@ SPS_SteamgiftLikes = function() {
                     name = gameData.name;
                     steamId = ' '+thut._settings.site._steamIdAttribute+'="'+gameData.steamId+'"';
                 }
-                return '<tr><td class="game_refresh"><span onclick="javascript:SPS_SteamgiftLikes.action.scanOneRow(this);" class="refresh_row">'+__('table.refresh')+'</span></td>'+
+                return '<tr><td class="game_refresh">'+this.rowRefreshLink()+'</td>'+
                       '<td class="game_num">'+num+'</td>'+
                       '<td class="game_name" '+thut._settings.site._gameIdAttribute+'="'+gameId+'"'+(steamId?steamId:'')+'>'+
                       (steamId?'':'<i class="fa fa-steam" onclick="javascript:SPS_SteamgiftLikes.action.updateTableSteamId(this);"></i>')+
@@ -255,6 +259,16 @@ SPS_SteamgiftLikes = function() {
                       '<td class="game_count"></td>'+
                       '<td class="game_delta"></td>'+
                       '<td class="game_links"></td></tr>';
+            },
+
+            // link to refresh the row on click
+            rowRefreshLink : function() {
+                return '<span onclick="javascript:SPS_SteamgiftLikes.action.scanOneRow(this);" class="refresh_row">'+__('table.refresh')+'</span>';
+            },
+
+            // link to remove the row on click
+            rowRemoveLink : function() {
+                return '<i class="fa fa-remove" onclick="javascript:SPS_SteamgiftLikes.action.removeTableRow(this);"></i>';
             },
 
             // list of numbered links to game giveaway for links cell
@@ -551,7 +565,7 @@ SPS_SteamgiftLikes = function() {
                     if ( $tableRow.length == 0 ) {
                         return;
                     }
-                    thut._render.update.tableRowAsOwned($tableRow);
+                    thut._render.update.tableRowAsRemovable($tableRow);
                     });
                 return ($gameRows.length < 25);
             },
@@ -621,6 +635,7 @@ SPS_SteamgiftLikes = function() {
                 $container.find('.spoiler').toggle();
             },
 
+            // update game name cell after steam-id parsing
             tableNameCell : function( $row, gameId, gameData ) {
                 var name = gameData;
                 var $cell = $('.game_name', $row);
@@ -635,9 +650,34 @@ SPS_SteamgiftLikes = function() {
                 $cell.append('<a href="'+thut._render.likedTable.searchUrl(name)+'" target="_blank">'+name+'</a>');
             },
 
-            tableRowAsOwned : function( $row ) {
+            // insert removing link to the refresh column
+            tableRowAsRemovable : function( $row ) {
                 var $cell = $('.game_refresh', $row);
-                $cell.html('<i class="fa fa-remove" onclick="javascript:SPS_SteamgiftLikes.action.removeTableRow(this);"></i>');
+                $cell.html(thut._render.likedTable.rowRemoveLink());
+            },
+
+            // insert refreshing link to the refresh column
+            tableRowAsRefreshable : function( $row ) {
+                var $cell = $('.game_refresh', $row);
+                $cell.html(thut._render.likedTable.rowRefreshLink());
+            },
+
+            // set the delete-games mode on/off
+            setDeleteGamesMode : function( switchOn ) {
+                var $button = thut._parse.likedTable.deleteGamesButton()
+                if ( switchOn ) {
+                    $button.addClass('pressed');
+                    $button.val(__('button.toggleDeleteOn'));
+                    $('.liked_games tbody tr').each( function() {
+                        thut._render.update.tableRowAsRemovable( $(this) );
+                    });
+                } else {
+                    $button.removeClass('pressed');
+                    $button.val(__('button.toggleDeleteOff'));
+                    $('.liked_games tbody tr').each( function() {
+                        thut._render.update.tableRowAsRefreshable( $(this) );
+                    });
+                }
             },
 
             // get gameId for current giveaway
@@ -796,6 +836,17 @@ SPS_SteamgiftLikes = function() {
             // get table row for control used inside
             rowByButton : function( button ) {
                 return $(button).parents( 'tr' );
+            },
+
+            // get the toggle-delete-mode button from service panel
+            deleteGamesButton : function () {
+                var $button = $('.service #toggleDeleteButton');
+                return $button;
+            },
+
+            // check if delete-mode is toggled on
+            isDeleteGamesOn : function() {
+                return this.deleteGamesButton().hasClass('pressed');
             },
 
         },
@@ -1626,6 +1677,15 @@ SPS_SteamgiftLikes = function() {
                                 });
         },
 
+        // toggle liked games removing mode (remove-links in refresh column)
+        toggleDeleteGames : function() {
+            if ( thut._parse.likedTable.isDeleteGamesOn() ) {
+                thut._render.update.setDeleteGamesMode( false );
+            } else {
+                thut._render.update.setDeleteGamesMode( true );
+            }
+        },
+
         // remove the game from liked list and delete it's row from table
         removeTableRow : function( button ) {
             var $row = thut._parse.likedTable.rowByButton(button);
@@ -1702,7 +1762,7 @@ SPS_SteamgiftLikes = function() {
             if (window.location.pathname.match(/^\/account\/settings\/giveaways/)) {
                 this._render.append.settingsHead( 'Likes' );
                 this._appendSettings();
-            } else if (window.location.pathname.match(/^\/account\/profile\/sync/)) {
+            } else if (window.location.pathname.match(/^\/account\/settings\/profile/)) {
                 this._render.append.settingsHead( 'Likes' );
                 this._appendCustomLikeSettings();
                 this._appendImportSettings();
