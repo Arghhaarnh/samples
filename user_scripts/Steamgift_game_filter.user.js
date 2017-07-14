@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Steamgift game filter
-// @version      2.3.2
+// @version      2.4.0
 // @description  You can like\unlike the games on steamgift to fade\highlight them in the list
 //               Liked games list available on the settings page. Is searches and highlights
 //                giveaways, where you didn't entered yet.
@@ -84,6 +84,8 @@ SPS_SteamgiftLikes = function() {
                 checkOwn: 'Check for own games',
                 toggleDeleteOff: 'Deleting games is OFF',
                 toggleDeleteOn: 'Deleting games is ON',
+                toggleNostrictFCOff: '<i class="fa fa-eye-slash"></i>',
+                toggleNostrictFCOn: '<i class="fa fa-eye"></i>',
             },
             table : {
                 number : 'N',
@@ -101,6 +103,7 @@ SPS_SteamgiftLikes = function() {
                 import : 'All the settings will be rewritten.\nItems missed in new list will be lost.',
                 refresh : 'Reread current settings and show it in window.',
                 time : 'Update the timing for scanned rows .',
+                toggleFCNostict: 'Show/hide nostrict matches in fast click list.'
             },
             alert : {
                 settingsApply : 'Settings applied succesfully',
@@ -147,10 +150,10 @@ SPS_SteamgiftLikes = function() {
 .liked_games tr.has_links { color: blue; } \
 .liked_games .links-strict, .liked_games .links-nostrict { margin: 0 4px; } \
 .liked_games a.link-item { margin: 0 1px; } \
-.liked_games a.link-item.expires-soon { color: red; } \
-.liked_games a.link-item.expires-night { color: #0053F5; } \
-.liked_games a.link-item.expires-day { color: #2D3748; } \
-.liked_games a.link-item.expires-later { color: grey; } \
+.liked_games a.link-item.expires-soon, .fast_click a.link-item.expires-soon { color: red; } \
+.liked_games a.link-item.expires-night, .fast_click a.link-item.expires-night { color: #0053F5; } \
+.liked_games a.link-item.expires-day, .fast_click a.link-item.expires-day { color: #2D3748; } \
+.liked_games a.link-item.expires-later, .fast_click a.link-item.expires-later { color: grey; } \
 .liked_games .refresh_row, .liked_games .sort_link { cursor: pointer; } \
 .liked_games .refresh_row .fa { opacity: 0.7; font-size: 11px; padding-bottom: 1px; } \
 .liked_games .fa-remove { color: red; cursor: pointer; } \
@@ -163,6 +166,10 @@ SPS_SteamgiftLikes = function() {
 .liked_games .game_links .comment__submit-button i { margin-top: -10px; } \
 .service .spoiler_button { cursor: pointer; width: auto; height: 20px; font-size: 10px; padding: 0 10px; } \
 .service .spoiler { display: none; padding: 15px 5px 12px 4px; background-color: #DEDEDE; margin-top: -10px; } \
+.fast_click_panel { padding: 10px 0px; margin: 5px; background-color: #f9ffda; border-radius: 4px; border-width: 1px; border-style: solid; border-color: #c5cad7 #dee0e8 #dee0e8 #d2d4e0; } \
+.fast_click .links-nostrict { display: none; } \
+.fast_click_panel .comment__submit-button { width: 20px; margin: -6px 4px; padding: 2px; cursor: point; float: left; line-height: 20px; font-size: 12px; } \
+.fast_click_panel .comment__submit-button .fa { font-size: inherit; } \
 ",
         gameList : "/* SPS game filter list styles */ \
 .sps_sgld_button { width: 17px; height: 17px; float: right; position: relative; margin: -6px 0px 1px 4px; border: solid 1px; border-radius: 3px; text-align: center; vertical-align: middle; cursor:pointer; padding: 1px 0 0 1px; } \
@@ -232,6 +239,14 @@ SPS_SteamgiftLikes = function() {
                        '</div>';
             },
 
+            // panel of fast click list
+            fastClickPanel : function() {
+                return '<div class="fast_click_panel">'+
+                       '<div id="toggleNostrictFCButton" class="comment__submit-button pressed" onclick="javascript:SPS_SteamgiftLikes.action.toggleNostrictFastclick();" title="'+__('description.toggleFCNostict')+'">'+__('button.toggleNostrictFCOff')+'</div>'+
+                       '<div class="fast_click"></div>'+
+                       '</div>';
+            },
+
             // table body content
             tableRows : function() {
                 var rows = [],
@@ -287,16 +302,14 @@ SPS_SteamgiftLikes = function() {
             },
 
             linkList : function( list ) {
-                var out = '', counter = 1, i, j, linkClass;
+                var out = '', counter = 1, i;
                 for ( i in list ) {
-                    linkClass = '';
-                    for ( j in thut._settings.filter._gameAlertStyles ) {
-                        if ( list[i].time - thut._logic.getNow() <= thut._settings.filter._gameAlertStyles[j].time ) {
-                            linkClass = thut._settings.filter._gameAlertStyles[j].class;
-                            break;
-                        }
-                    }
-                    out += '<a href="'+list[i].link+'" class="link-item '+linkClass+'" target="_blank" data-tick-time="'+list[i].time+'">['+(counter++)+']</a>';
+                    out += '<a href="'+list[i].link+'" '+
+                              'class="link-item '+thut._logic.getTimeClass(list[i].time)+'" '+
+                              'target="_blank" '+
+                              'data-tick-time="'+list[i].time+'"'+
+                              (typeof(list[i].name)!=='undefined'?' data-game-name="'+list[i].name.replace('"', '&quote;')+'" ':'')+
+                              '>['+(counter++)+']</a>';
                 }
                 return out;
             },
@@ -312,6 +325,20 @@ SPS_SteamgiftLikes = function() {
             // url to common list page
             plainPageUrl : function( data, pageNum ) {
                 return '/giveaways/search?page='+pageNum;
+            },
+
+            // fast click list content
+            fastClickList : function() {
+                thut._logic.prepareNow();
+                var result = '', list = thut._data.fastClick.list();
+                if ( list.length ) {
+                    result += '<div class="links-strict">'+thut._render.likedTable.linkList( list )+'</div>';
+                }
+                list = thut._data.fastClick.list(true);
+                if ( list.length ) {
+                    result += '<div class="links-nostrict">'+thut._render.likedTable.linkList( list )+'</div>';
+                }
+                return result;
             },
 
             // time before giveavay ends
@@ -412,8 +439,8 @@ SPS_SteamgiftLikes = function() {
                               .addClass( thut._settings.filter._iconClass )
                               .addClass( type );
                 if ( type == 'liked' || type == 'disliked' ) {
-                    if ( forSingle && thut._parse.singlePage.isNotEntered()
-                        || ( !forSingle && thut._parse.gameList.isNotEntered($listItem) ) ) {
+                    if ( forSingle && thut._parse.singlePage.isNotEntered() ||
+                            ( !forSingle && thut._parse.gameList.isNotEntered($listItem) ) ) {
                         $listItem.addClass('fresh');
                     }
                     $icon.attr('onclick','SPS_SteamgiftLikes.action.unmarkGameAs(\''+type+'\', this)');
@@ -496,7 +523,7 @@ SPS_SteamgiftLikes = function() {
                 var $active = $('.liked_games .sort_link.current, .liked_games .sort_link.active');
                 $('.liked_games .sort_link').removeClass('active').removeClass('current');
                 $active.addClass('active');
-                $current.parent().find('.sort_link').removeClass('active')
+                $current.parent().find('.sort_link').removeClass('active');
                 $current.addClass('current');
             },
 
@@ -585,9 +612,11 @@ SPS_SteamgiftLikes = function() {
             // update the table rows by scanned counter data
             // gameId : if set, updates the row for given game; iterate all the counter data else
             // skipTimeUpdate : don't render time deltas for row (used to render it for whole table)
-            plainTable : function( gameId, skipTimeUpdate ) {
+            plainTable : function( gameId, record, skipTimeUpdate ) {
                 if ( typeof(gameId) !== 'undefined' && gameId ) {
-                    var record = thut._data.counter.getRecord(gameId);
+                    if ( typeof(record) == 'undefined' || !record ) {
+                        record = thut._data.counter.getRecord(gameId);
+                    }
                     if ( ! record ) {
                         console.log('Game "'+gameId+'" not found in plain count');
                         return;
@@ -608,9 +637,23 @@ SPS_SteamgiftLikes = function() {
                     return;
                 }
                 thut._render.update.resetTable();
-                thut._data.counter.iterateWith( this.plainTable, true );
+                thut._data.counter.iterateWith( function(id,record){ thut._render.update.plainTable(id,record,true); } );
+                thut._render.update.fastClick();
                 thut._render.update.tableUpdatedRestore();
                 thut._render.update.tableTimeDelta();
+            },
+
+            fastClick : function() {
+                thut._data.fastClick.scanCounter();
+                var fastClickList = thut._render.likedTable.fastClickList();
+                var $panel = thut._parse.likedTable.fastClickPanel();
+                var $block = thut._parse.likedTable.fastClick();
+                $block.html( fastClickList );
+                if ( fastClickList ) {
+                    $panel.show();
+                } else {
+                    $panel.hide();
+                }
             },
 
             // set the 'updated' cell content
@@ -664,7 +707,7 @@ SPS_SteamgiftLikes = function() {
 
             // set the delete-games mode on/off
             setDeleteGamesMode : function( switchOn ) {
-                var $button = thut._parse.likedTable.deleteGamesButton()
+                var $button = thut._parse.likedTable.deleteGamesButton();
                 if ( switchOn ) {
                     $button.addClass('pressed');
                     $button.val(__('button.toggleDeleteOn'));
@@ -680,11 +723,32 @@ SPS_SteamgiftLikes = function() {
                 }
             },
 
+            // set the fastclick mode strict/nostrict
+            setFastclickMode : function( strict ) {
+                var $button = thut._parse.likedTable.toggleFastclickModeButton();
+                console.log($button);
+                console.log(strict);
+                if ( strict ) {
+                console.log('on');
+                    $button.removeClass('pressed');
+                    $button.html(__('button.toggleNostrictFCOn'));
+                    $('.fast_click .links-strict').hide();
+                    $('.fast_click .links-nostrict').show();
+                } else {
+                console.log('off');
+                    $button.addClass('pressed');
+                    $button.html(__('button.toggleNostrictFCOff'));
+                    $('.fast_click .links-nostrict').hide();
+                    $('.fast_click .links-strict').show();
+                }
+            },
+
             // get gameId for current giveaway
             pageGameId : function( gameId ) {
                 var $link = $('.global__image-outer-wrap--game-large:first');
                 if ( $link.length ) {
                     $link.attr(thut._settings.site._gameIdAttribute, gameId);
+
                 }
             },
 
@@ -849,6 +913,26 @@ SPS_SteamgiftLikes = function() {
                 return this.deleteGamesButton().hasClass('pressed');
             },
 
+            // fast click panel
+            fastClickPanel : function() {
+                return $('.fast_click_panel');
+            },
+
+            // fast click inner block
+            fastClick : function() {
+                return $('.fast_click');
+            },
+
+            // get the toggle-fastclick-mode button
+            toggleFastclickModeButton : function () {
+                var $button = $('.fast_click_panel #toggleNostrictFCButton');
+                return $button;
+            },
+
+            // check if delete-mode is toggled on
+            isStrictFastclickOff : function() {
+                return this.toggleFastclickModeButton().hasClass('pressed');
+            },
         },
 
         // Short giveaway game list as ajax-search or entered-list
@@ -926,7 +1010,7 @@ SPS_SteamgiftLikes = function() {
                 var $link = $('.global__image-outer-wrap--game-large:first');
                 var gameId = $link.attr(thut._settings.site._gameIdAttribute);
                 if ( !gameId ) {
-                    gameId = thut._data.list.searchBySteamId(this.steamId())
+                    gameId = thut._data.list.searchBySteamId(this.steamId());
                 }
                 return gameId;
             },
@@ -1134,6 +1218,18 @@ SPS_SteamgiftLikes = function() {
                                true);
         },
 
+        getTimeClass : function( timestamp ) {
+            var linkClass = '', j;
+            var timeDelta = timestamp - this.getNow();
+            for ( j in thut._settings.filter._gameAlertStyles ) {
+                if ( timeDelta <= thut._settings.filter._gameAlertStyles[j].time ) {
+                    linkClass = thut._settings.filter._gameAlertStyles[j].class;
+                    break;
+                }
+            }
+            return linkClass;
+        },
+
         prepareNow : function() {
             var now = new Date();
             this.__now = now.getTime();
@@ -1333,7 +1429,7 @@ SPS_SteamgiftLikes = function() {
             //     [gameId+'_']=> { strict: list of giveaways strictly for this game
             //                      nostrict: list of giveaways for games with same name or about
             //                      totalCount: common count of giveaways found, including entered
-            //                      minTime: time to clothest giveaway end
+            //                      minTime: time to closest giveaway end
             //                      }
             __plainCount : {},
 
@@ -1428,6 +1524,76 @@ SPS_SteamgiftLikes = function() {
             iterateWith : function( func ) {
                 thut._data.util.iterate( this.__plainCount.games, func );
             },
+        },
+
+        // Fast click panel data
+        fastClick : {
+            // data list for selected game giveaway as:
+            //                      {
+            //                      time: timestamp of giveaway end
+            //                      link: url of giveqway page
+            //                      name: game name
+            //                      }
+            __list : [],
+            __noStrictList : [],
+
+            // return list of fastclick records
+            list : function( noStrict ) {
+                if ( typeof noStrict !== undefined && noStrict ) {
+                    return this.__noStrictList;
+                }
+                return this.__list;
+            },
+
+            // scan the gamecounter data for new fastclick data
+            scanCounter : function() {
+                this.reset();
+                thut._data.counter.iterateWith( thut._data.fastClick.scanCounterRow );
+                this.sort();
+            },
+
+            scanCounterRow : function( gameId, record ) {
+                var gameName = '', i;
+                var likedRecord = thut._data.list.getLiked(gameId);
+                if ( typeof likedRecord !== 'undefined' ) {
+                    gameName = likedRecord.name;
+                }
+                for ( i in record.strict ) {
+                    thut._data.fastClick.appendList(gameId, gameName, record.strict[i], false);
+                }
+                for ( i in record.nostrict ) {
+                    thut._data.fastClick.appendList(gameId, gameName, record.nostrict[i], true);
+                }
+            },
+
+            appendList : function( gameId, gameName, record, strictOnly ) {
+                var fastRecord = { name: gameName,
+                                   time: record.time,
+                                   link: record.link,
+                                 };
+                thut._data.fastClick.__noStrictList.push( fastRecord );
+                if ( !strictOnly ) {
+                    thut._data.fastClick.__list.push( fastRecord );
+                }
+            },
+
+            // reset fastclick record list
+            reset : function() {
+                this.__list = [];
+                this.__noStrictList = [];
+            },
+
+            // sort the fastclick list by keys (means by time)
+            sort : function() {
+                this.__list.sort( this.fastClickItemCompare );
+                this.__noStrictList.sort( this.fastClickItemCompare );
+            },
+
+            fastClickItemCompare : function( a, b ) {
+                if( a.time < b.time ) return -1;
+                if( a.time > b.time ) return 1;
+                return 0;
+            }
         },
 
         // utility data operations
@@ -1587,6 +1753,7 @@ SPS_SteamgiftLikes = function() {
                                        thut._render.update.workStop();
                                        thut._render.update.tableUpdatedRestore();
                                        thut._render.update.sortButtons();
+                                       thut._render.update.fastClick();
                                        thut._data.counter.save();
                                    },
                                  });
@@ -1612,6 +1779,7 @@ SPS_SteamgiftLikes = function() {
                                       thut._render.update.workStop(true);
                                       thut._data.counter.save();
                                       thut._render.update.sortButtons();
+                                      thut._render.update.fastClick();
                                   },
                                 });
         },
@@ -1686,6 +1854,17 @@ SPS_SteamgiftLikes = function() {
             }
         },
 
+        // toggle fast click mode (strict/no-strict)
+        toggleNostrictFastclick : function() {
+            if ( thut._parse.likedTable.isStrictFastclickOff() ) {
+                console.log('was off');
+                thut._render.update.setFastclickMode( true );
+            } else {
+                console.log('was on');
+                thut._render.update.setFastclickMode( false );
+            }
+        },
+
         // remove the game from liked list and delete it's row from table
         removeTableRow : function( button ) {
             var $row = thut._parse.likedTable.rowByButton(button);
@@ -1715,10 +1894,11 @@ SPS_SteamgiftLikes = function() {
     _appendSettings : function() {
         var heads = this._render.likedTable.tableHeader();
         var service = this._render.likedTable.servicePanel();
+        var fastClick = this._render.likedTable.fastClickPanel();
         this._data.list.load();
         var rows = this._render.likedTable.tableRows();
         this._render.append.styles( this._styles.likedTable );
-        this._render.append.settingsRow( 1, 'Monitor', service+'<table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody>'+heads+'</table>' );
+        this._render.append.settingsRow( 1, 'Monitor', service+fastClick+'<table class="liked_games">'+heads+'<tbody>'+rows.join('')+'</tbody>'+heads+'</table>'+fastClick );
         this._data.counter.load();
         this._render.update.plainTable();
     },
