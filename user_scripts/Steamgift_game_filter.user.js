@@ -166,7 +166,7 @@ SPS_SteamgiftLikes = function() {
 .liked_games .game_links .comment__submit-button i { margin-top: -10px; } \
 .service .spoiler_button { cursor: pointer; width: auto; height: 20px; font-size: 10px; padding: 0 10px; } \
 .service .spoiler { display: none; padding: 15px 5px 12px 4px; background-color: #DEDEDE; margin-top: -10px; } \
-.fast_click_panel { padding: 10px 0px; margin: 5px; background-color: #f9ffda; border-radius: 4px; border-width: 1px; border-style: solid; border-color: #c5cad7 #dee0e8 #dee0e8 #d2d4e0; } \
+.fast_click_panel { width: 849px; padding: 10px 0px; margin: 5px; background-color: #f9ffda; border-radius: 4px; border-width: 1px; border-style: solid; border-color: #c5cad7 #dee0e8 #dee0e8 #d2d4e0; } \
 .fast_click .links-nostrict { display: none; } \
 .fast_click_panel .comment__submit-button { width: 20px; margin: -6px 4px; padding: 2px; cursor: point; float: left; line-height: 20px; font-size: 12px; } \
 .fast_click_panel .comment__submit-button .fa { font-size: inherit; } \
@@ -266,7 +266,8 @@ SPS_SteamgiftLikes = function() {
                     name = gameData.name;
                     steamId = ' '+thut._settings.site._steamIdAttribute+'="'+gameData.steamId+'"';
                 }
-                return '<tr><td class="game_refresh">'+this.rowRefreshLink()+'</td>'+
+                return '<tr '+thut._settings.site._gameIdAttribute+'="'+gameId+'">'+
+                      '<td class="game_refresh">'+this.rowRefreshLink()+'</td>'+
                       '<td class="game_num">'+num+'</td>'+
                       '<td class="game_name" '+thut._settings.site._gameIdAttribute+'="'+gameId+'"'+(steamId?steamId:'')+'>'+
                       (steamId?'':'<i class="fa fa-steam" onclick="javascript:SPS_SteamgiftLikes.action.updateTableSteamId(this);"></i>')+
@@ -302,14 +303,27 @@ SPS_SteamgiftLikes = function() {
             },
 
             linkList : function( list ) {
-                var out = '', counter = 1, i;
+                var name, nostrict, out = '', counter = 1, i;
                 for ( i in list ) {
+                    name = '';
+                    nostrict = false;
+                    if ( typeof list[i].nostrict !== 'undefined' && list[i].nostrict ) {
+                        nostrict = true;
+                    };
+                    if ( typeof list[i].name !=='undefined' ) {
+                        name = list[i].name.replace('"', '&quote;');
+                        if ( nostrict ) {
+                            name = 'by ~~'+name+'~~';
+                        }
+                        name = ' data-game-name="'+name+'" ';
+                    }
                     out += '<a href="'+list[i].link+'" '+
                               'class="link-item '+thut._logic.getTimeClass(list[i].time)+'" '+
                               'target="_blank" '+
                               'data-tick-time="'+list[i].time+'"'+
-                              (typeof(list[i].name)!=='undefined'?' data-game-name="'+list[i].name.replace('"', '&quote;')+'" ':'')+
-                              '>['+(counter++)+']</a>';
+                              name+
+                              '>['+(nostrict?'<strike>':'')+counter+(nostrict?'</i>':'')+']</strike>';
+                    counter++;
                 }
                 return out;
             },
@@ -643,6 +657,7 @@ SPS_SteamgiftLikes = function() {
                 thut._render.update.tableTimeDelta();
             },
 
+            // updates the fasclick panel basing on current counter data
             fastClick : function() {
                 thut._data.fastClick.scanCounter();
                 var fastClickList = thut._render.likedTable.fastClickList();
@@ -726,16 +741,12 @@ SPS_SteamgiftLikes = function() {
             // set the fastclick mode strict/nostrict
             setFastclickMode : function( strict ) {
                 var $button = thut._parse.likedTable.toggleFastclickModeButton();
-                console.log($button);
-                console.log(strict);
                 if ( strict ) {
-                console.log('on');
                     $button.removeClass('pressed');
                     $button.html(__('button.toggleNostrictFCOn'));
                     $('.fast_click .links-strict').hide();
                     $('.fast_click .links-nostrict').show();
                 } else {
-                console.log('off');
                     $button.addClass('pressed');
                     $button.html(__('button.toggleNostrictFCOff'));
                     $('.fast_click .links-nostrict').hide();
@@ -775,6 +786,16 @@ SPS_SteamgiftLikes = function() {
                         return;
                     }
                     $(this).attr('title', thut._render.likedTable.deltaTime(time, true));
+                });
+                $('.fast_click a.link-item').each( function(){
+                    var time = parseInt($(this).attr('data-tick-time'));
+                    var name = $(this).attr('data-game-name');
+                    if ( isNaN(time) ) {
+                        time = '';
+                    } else {
+                        time = thut._render.likedTable.deltaTime(time, true)
+                    }
+                    $(this).attr('title', time + "\n" + name );
                 });
             },
 
@@ -1113,16 +1134,6 @@ SPS_SteamgiftLikes = function() {
     _logic : {
         // now timestamp
         __now : 0,
-
-        // compare two table rows for sorting
-        rowShouldBeAfter : function( row1, row2, sortBy, asc ) {
-            var key1 = thut._parse.likedTable.sortKey(row1, sortBy);
-            var key2 = thut._parse.likedTable.sortKey(row2, sortBy);
-            if ( (key1 > key2 && asc) || (key1 < key2 && !asc) ) {
-                return true;
-            }
-            return false;
-        },
 
         // append the counter data for game ids
         // gameIdList : affected gameId or array of gameId
@@ -1566,15 +1577,17 @@ SPS_SteamgiftLikes = function() {
                 }
             },
 
-            appendList : function( gameId, gameName, record, strictOnly ) {
+            appendList : function( gameId, gameName, record, noStrict ) {
                 var fastRecord = { name: gameName,
                                    time: record.time,
                                    link: record.link,
                                  };
-                thut._data.fastClick.__noStrictList.push( fastRecord );
-                if ( !strictOnly ) {
+                if ( !noStrict ) {
                     thut._data.fastClick.__list.push( fastRecord );
+                } else {
+                    fastRecord.nostrict = true;
                 }
+                thut._data.fastClick.__noStrictList.push( fastRecord );
             },
 
             // reset fastclick record list
@@ -1715,26 +1728,38 @@ SPS_SteamgiftLikes = function() {
             }
             thut._render.update.workStart();
             var sortBy = thut._parse.likedTable.sortCriteria(button),
-                asc = thut._parse.likedTable.sortOrder(button),
-                copy = $('.liked_games').parent().html();
-            var tableBody = $('tbody', copy)[0];
-            var rows = tableBody.getElementsByTagName('tr');
+                asc = thut._parse.likedTable.sortOrder(button);
+            var rows = $('.liked_games tbody tr');
+            var tableBody = $('tbody')[0];
             var i, j, rowCount = rows.length,
                 ascBool = (asc=='1')?true:false;
-            setTimeout( function(){
-                thut._logic.prepareNow();
-                for(i = 0; i < rowCount-1; i++) {
-                    for(j = 0; j < rowCount - i - 1; j++) {
-                        if( thut._logic.rowShouldBeAfter(rows[j], rows[j+1], sortBy, ascBool ) ) {
-                            tableBody.insertBefore(rows[j+1],rows[j]);
-                        }
-                    }
+            thut._logic.prepareNow();
+            var map = [];
+            for(i = 0; i < rowCount; i++) {
+                map.push({id: $(rows[i]).attr(thut._settings.site._gameIdAttribute),
+                          key: thut._parse.likedTable.sortKey(rows[i], sortBy)});
+            }
+            map.sort(function(a,b){
+                var res = 0;
+                if ( a.key > b.key ) {
+                    res = 1;
+                } else if ( a.key < b.key ) {
+                    res = -1;
                 }
-                $('.liked_games tbody').html($(tableBody).html());
-                thut._render.update.sortButtons( sortBy, asc );
-                thut._render.update.workStop();
-                thut._work._workStop();
-                }, 1000);
+                if ( !ascBool ) {
+                    res = -res;
+                }
+                return res;
+               });
+            var elem1, elem2;
+            for(i = rowCount-1; i > 0; i--) {
+                elem1 = $('.liked_games tbody tr['+thut._settings.site._gameIdAttribute+'="'+map[i-1].id+'"')[0];
+                elem2 = $('.liked_games tbody tr['+thut._settings.site._gameIdAttribute+'="'+map[i].id+'"')[0];
+                tableBody.insertBefore(elem1, elem2);
+            }
+            thut._render.update.sortButtons( sortBy, asc );
+            thut._render.update.workStop();
+            thut._work._workStop();
         },
 
         // scan steamgift search for one table row
@@ -1857,10 +1882,8 @@ SPS_SteamgiftLikes = function() {
         // toggle fast click mode (strict/no-strict)
         toggleNostrictFastclick : function() {
             if ( thut._parse.likedTable.isStrictFastclickOff() ) {
-                console.log('was off');
                 thut._render.update.setFastclickMode( true );
             } else {
-                console.log('was on');
                 thut._render.update.setFastclickMode( false );
             }
         },
