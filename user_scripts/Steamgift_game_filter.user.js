@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Steamgift game filter
-// @version      2.4.0
+// @version      2.4.1
 // @description  You can like\unlike the games on steamgift to fade\highlight them in the list
 //               Liked games list available on the settings page. Is searches and highlights
 //                giveaways, where you didn't entered yet.
@@ -9,8 +9,8 @@
 //
 //               How to use:
 //                - game lists like search, frontpage etc. have like/dislike marks. Like will highlight the game in lists. Dislike - fade it.
-//                - setting page https://www.steamgifts.com/account/settings/giveaways allow to scan giveaway list for liked games
-//                - setting page https://www.steamgifts.com/account/profile/sync allow to import/export likes/dislikes as json
+//                - setting page https://www.steamgifts.com/account/settings/giveaways allows to scan giveaway list for liked games
+//                - setting page https://www.steamgifts.com/account/settings/profile allows to import/export likes/dislikes as json
 // @author       Blood_again
 // @match        http://www.steamgifts.com/*
 // @match        https://www.steamgifts.com/*
@@ -55,6 +55,11 @@ SPS_SteamgiftLikes = function() {
                                         { time: TIME__ADAY_MS, class: 'expires-day'}, // 8h to 1.5day
                                         { time: TIME__FARFAR_MS, class: 'expires-later'} // more than 1 day
                                        ],
+        },
+
+        ui: {
+            _maxFastclickItems:        40,    // how many links should be in a fastclick list
+            _minNameLengthForNostrict: 5,     // if game name is shorter, no-strict giveaway will be ignored to avoid a flood
         },
 
         locale : 'eng-EN',
@@ -322,7 +327,7 @@ SPS_SteamgiftLikes = function() {
                               'target="_blank" '+
                               'data-tick-time="'+list[i].time+'"'+
                               name+
-                              '>['+(nostrict?'<strike>':'')+counter+(nostrict?'</i>':'')+']</strike>';
+                              '>['+(nostrict?'<strike>':'')+counter+(nostrict?'</strike>':'')+']</a>';
                     counter++;
                 }
                 return out;
@@ -547,6 +552,7 @@ SPS_SteamgiftLikes = function() {
                 thut._logic.prepareNow();
                 thut._render.update.resetTable($row);
                 var gameId = thut._parse.likedTable.gameId($row);
+                var gameName = thut._parse.likedTable.gameName($row);
                 var $gameRows = $(thut._settings.site._gameInListSelector, response);
                 if ( $gameRows.length ) {
                     $gameRows.each(function(){
@@ -559,7 +565,9 @@ SPS_SteamgiftLikes = function() {
                             thut._logic.addCounter(gameId, giveawayContainer, true);
                             return;
                         }
-                        thut._logic.addCounter(gameId, giveawayContainer, false);
+                        if ( gameName.length >= thut._settings.ui._minNameLengthForNostrict ) {
+                            thut._logic.addCounter(gameId, giveawayContainer, false);
+                        }
                     });
                     thut._render.update.plainTable(gameId);
                 }
@@ -645,7 +653,7 @@ SPS_SteamgiftLikes = function() {
                         $('td.game_links', row).html( thut._render.likedTable.linkListFull( record.strict, record.nostrict ) );
                         $(row).removeClass('to_count').removeClass('no_links').addClass('has_links');
                     }
-                    if ( !skipTimeUpdate ) {
+                    if ( typeof skipTimeUpdate == 'undefined' || !skipTimeUpdate ) {
                         thut._render.update.tableTimeDelta(row);
                     }
                     return;
@@ -666,6 +674,7 @@ SPS_SteamgiftLikes = function() {
                 $block.html( fastClickList );
                 if ( fastClickList ) {
                     $panel.show();
+                    this.fastclickTimeDelta();
                 } else {
                     $panel.hide();
                 }
@@ -763,9 +772,24 @@ SPS_SteamgiftLikes = function() {
                 }
             },
 
+            // update delta times for fastclick panel
+            fastclickTimeDelta : function() {
+                thut._logic.prepareNow();
+                $('.fast_click a.link-item').each( function(){
+                    var time = parseInt($(this).attr('data-tick-time'));
+                    var name = $(this).attr('data-game-name');
+                    if ( isNaN(time) ) {
+                        time = '';
+                    } else {
+                        time = thut._render.likedTable.deltaTime(time, true)
+                    }
+                    $(this).attr('title', time + "\n" + name );
+                });
+            },
+
             // update delta times for rows and lists
             tableTimeDelta : function(row) {
-                thut._logic.prepareNow();
+                this.fastclickTimeDelta();
                 if ( 'undefined' == typeof row ) {
                     row = $('tr.has_links');
                 } else {
@@ -786,16 +810,6 @@ SPS_SteamgiftLikes = function() {
                         return;
                     }
                     $(this).attr('title', thut._render.likedTable.deltaTime(time, true));
-                });
-                $('.fast_click a.link-item').each( function(){
-                    var time = parseInt($(this).attr('data-tick-time'));
-                    var name = $(this).attr('data-game-name');
-                    if ( isNaN(time) ) {
-                        time = '';
-                    } else {
-                        time = thut._render.likedTable.deltaTime(time, true)
-                    }
-                    $(this).attr('title', time + "\n" + name );
                 });
             },
 
@@ -1303,11 +1317,15 @@ SPS_SteamgiftLikes = function() {
             // check if name contains liked names
             isLikedByName : function( gameName ) {
                 gameName = gameName.toLowerCase();
-                var gameIdList = [], localName;
+                var gameIdList = [], localName, pos;
                 this.iterateLiked( function( key, item ){
                     localName = ('string'===typeof item)?item:item.name;
-                    if ( gameName.indexOf(localName.toLowerCase()) >= 0 ) {
-                        gameIdList.push(key);
+                    localName = localName.toLowerCase();
+                    pos = gameName.indexOf(localName);
+                    if ( pos >= 0 ) {
+                        if ( localName.length >= thut._settings.ui._minNameLengthForNostrict || localName == gameName ) {
+                            gameIdList.push(key);
+                        }
                     }
                 });
                 return gameIdList;
@@ -1583,11 +1601,15 @@ SPS_SteamgiftLikes = function() {
                                    link: record.link,
                                  };
                 if ( !noStrict ) {
-                    thut._data.fastClick.__list.push( fastRecord );
+                    if ( thut._data.fastClick.__list.length < thut._settings.ui._maxFastclickItems ) {
+                        thut._data.fastClick.__list.push( fastRecord );
+                    }
                 } else {
                     fastRecord.nostrict = true;
                 }
-                thut._data.fastClick.__noStrictList.push( fastRecord );
+                if ( thut._data.fastClick.__noStrictList.length < thut._settings.ui._maxFastclickItems ) {
+                    thut._data.fastClick.__noStrictList.push( fastRecord );
+                }
             },
 
             // reset fastclick record list
